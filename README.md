@@ -21,6 +21,11 @@
   <img alt="Bootstrap 5.3.3" src="https://img.shields.io/badge/Bootstrap-5.3.3-7952B3?logo=bootstrap&logoColor=white">
 </p>
 
+<p align="center">
+  <img src="docs/assets/gamescal-schedule.png" alt="Gcal desktop schedule showing demo games, venue colors, and driving-time estimates" width="100%">
+</p>
+<p align="center"><sub>Demo data showing location colors, game gaps, and travel estimates.</sub></p>
+
 ## Why Gcal?
 
 Sports schedules rarely live in one place. A team may use one calendar, a league
