@@ -329,7 +329,14 @@ a {
   color: var(--bs-primary-text-emphasis);
   background: var(--bs-primary-bg-subtle);
   font-size: 0.8rem;
+  text-decoration: none;
   white-space: nowrap;
+}
+
+.calendar-label:hover {
+  color: var(--bs-primary-text-emphasis);
+  background: var(--bs-primary-border-subtle);
+  text-decoration: underline;
 }
 
 .event-cancelled td {

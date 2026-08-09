@@ -125,7 +125,7 @@
                     <span class="text-body-secondary">—</span>
                   {% endif %}
                 </td>
-                <td><span class="calendar-label">{{ event.calendar.name }}</span></td>
+                <td><a class="calendar-label" href="{{ event.calendar.website_url|default:event.calendar.cal_url }}" target="_blank" rel="noopener" title="Open {{ event.calendar.name }} calendar">{{ event.calendar.name }}</a></td>
               </tr>
             {% endwith %}
           {% endfor %}
@@ -148,7 +148,7 @@
                   <strong>{% if event.is_all_day %}All day{% else %}{{ local_start|time:"g:i A" }}{% endif %}</strong>
                 </div>
               </div>
-              <span class="calendar-label mobile-calendar-label">{{ event.calendar.name }}</span>
+              <a class="calendar-label mobile-calendar-label" href="{{ event.calendar.website_url|default:event.calendar.cal_url }}" target="_blank" rel="noopener" title="Open {{ event.calendar.name }} calendar">{{ event.calendar.name }}</a>
             </header>
 
             <div class="mobile-event-body">

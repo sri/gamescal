@@ -180,7 +180,11 @@ class PageTests(TestCase):
         )
 
     def test_home_lists_only_events_from_active_calendars(self):
-        active = Calendar.objects.create(name="Active", cal_url="https://active.test/a.ics")
+        active = Calendar.objects.create(
+            name="Active",
+            cal_url="https://active.test/a.ics",
+            website_url="https://active.test/schedule",
+        )
         inactive = Calendar.objects.create(
             name="Inactive", cal_url="https://inactive.test/a.ics", is_active=False
         )
@@ -199,7 +203,29 @@ class PageTests(TestCase):
         self.assertContains(response, "Visible game")
         self.assertContains(response, "mobile-event-card")
         self.assertContains(response, "d-none d-md-block table-responsive")
+        self.assertContains(
+            response, 'href="https://active.test/schedule"', count=2
+        )
         self.assertNotContains(response, "Hidden game")
+
+    def test_event_calendar_link_falls_back_to_feed_url(self):
+        calendar = Calendar.objects.create(
+            name="Feed only", cal_url="https://example.com/fallback.ics"
+        )
+        CalendarEvent.objects.create(
+            calendar=calendar,
+            external_uid="fallback-link",
+            title="Fallback link game",
+            starts_at=timezone.now() + timedelta(days=1),
+            ends_at=timezone.now() + timedelta(days=1, minutes=50),
+            event_type=CalendarEvent.EventType.GAME,
+        )
+
+        response = self.client.get(reverse("home"))
+
+        self.assertContains(
+            response, 'href="https://example.com/fallback.ics"', count=2
+        )
 
     def test_home_event_views_and_weekend_filter(self):
         calendar = Calendar.objects.create(
@@ -318,7 +344,9 @@ class PageTests(TestCase):
         calendar = Calendar.objects.create(
             name="Travel schedule", cal_url="https://example.com/travel.ics"
         )
-        start = timezone.now() + timedelta(days=1)
+        start = (timezone.now() + timedelta(days=1)).astimezone(
+            ZoneInfo("America/Phoenix")
+        ).replace(hour=12, minute=0, second=0, microsecond=0)
         event_specs = (
             ("First game", CalendarEvent.EventType.GAME, "Central Stadium"),
             ("Same venue", CalendarEvent.EventType.GAME, " central   stadium "),
