@@ -1,0 +1,21 @@
+[project]
+name = "gamescal"
+version = "0.1.0"
+requires-python = ">=3.14.6"
+dependencies = [
+  "django ~=6.1.0",
+  "django-allauth[openid,socialaccount] ~=65.15",
+  "django-debug-toolbar ~=6.3",
+  "crispy-bootstrap5 ~=2026.3",
+  "gunicorn ~=25.3",
+  "whitenoise ~=6.12",
+  "icalendar~=7.0",
+  "recurring-ical-events~=3.8",
+  "requests~=2.34",
+  "python-dotenv~=1.2",
+]
+
+[dependency-groups]
+dev = [
+  "typing_extensions ~=4.12",
+]

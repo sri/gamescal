@@ -1,0 +1,89 @@
+{% extends '_base.html' %}
+{% load calendar_tags %}
+
+{% block title %}Preview {{ calendar_name }} · Gamescal{% endblock title %}
+
+{% block content %}
+<div class="py-4">
+  <a class="back-link" href="{% url 'calendar_add' %}">← Change calendar URL</a>
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3 mt-3 mb-4">
+    <div>
+      <div class="text-uppercase small fw-semibold text-primary mb-1">Import preview</div>
+      <h1 class="mb-1">{{ calendar_name }}</h1>
+      <p class="text-body-secondary mb-0">{{ result.events|length }} event{{ result.events|length|pluralize }} · {{ result.timezone }}</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-light" href="{% url 'home' %}">Cancel</a>
+      <form method="post" action="{% url 'calendar_confirm' token %}">
+        {% csrf_token %}
+        <button class="btn btn-success" type="submit">OK, Add Calendar</button>
+      </form>
+    </div>
+  </div>
+
+  {% for warning in result.warnings %}<div class="alert alert-warning">{{ warning }}</div>{% endfor %}
+
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body py-3">
+      <dl class="row mb-0 small">
+        <dt class="col-sm-2 text-body-secondary">Calendar feed</dt>
+        <dd class="col-sm-10 text-break mb-2"><a href="{{ cal_url }}" target="_blank" rel="noopener">{{ cal_url }}</a></dd>
+        {% if website_url %}<dt class="col-sm-2 text-body-secondary">Website</dt><dd class="col-sm-10 mb-0"><a href="{{ website_url }}" target="_blank" rel="noopener">{{ website_url }}</a></dd>{% endif %}
+      </dl>
+    </div>
+  </div>
+
+  {% if result.events %}
+    <div class="table-responsive event-table-wrap">
+      <table class="table table-hover align-middle mb-0 event-table">
+        <thead><tr><th>Date</th><th>Time</th><th>Event</th><th>Location</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for event in result.events %}
+            {% with local_start=event.starts_at|in_timezone:result.timezone destination=event.address|default:event.location %}
+              <tr class="{% if event.location %}event-location-colored{% endif %}"{% if event.location %} style="--location-hue: {{ event.location|location_hue }};"{% endif %}>
+                <td class="text-nowrap">{{ local_start|date:"M j, Y" }}</td>
+                <td class="text-nowrap">{% if event.is_all_day %}All day{% else %}{{ local_start|time:"g:i A" }}{% endif %}</td>
+                <td class="event-title-cell">
+                  <div class="fw-semibold">{{ event.title }}</div>
+                  {% if event.team1 and event.team2 %}<div class="small text-body-secondary">{{ event.team1 }} vs {{ event.team2 }}</div>{% endif %}
+                  <span class="badge event-type-{{ event.event_type }} mt-1">{{ event.event_type|title }}</span>
+                  {% if event.game_gap_after %}
+                    <span class="game-gap-badge {% if event.game_travel_tight %}game-gap-badge-tight{% endif %}">
+                      <span>⏱ {{ event.game_gap_after }} between games</span>
+                      {% if event.game_drive_after %}<span class="game-gap-detail">🚗 ~{{ event.game_drive_after }} drive{% if event.game_drive_distance_after %} ({{ event.game_drive_distance_after }}){% endif %} · {{ event.game_buffer_after }}</span>{% endif %}
+                    </span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if event.location %}
+                    <a class="map-link location-chip" href="{{ destination|google_maps_directions:event.directions_origin }}" target="_blank" rel="noopener" title="{% if event.directions_origin %}Directions from the previous game in Google Maps{% else %}Get directions in Google Maps{% endif %}">
+                      <span class="location-color-dot" aria-hidden="true"></span>{% if event.directions_origin %}<span class="visually-hidden">Directions from the previous game to </span>{% endif %}{{ event.location }} <span aria-hidden="true">↗</span>
+                    </a>
+                  {% else %}
+                    <span class="text-body-secondary">—</span>
+                  {% endif %}
+                </td>
+                <td><span class="badge {% if event.status == 'cancelled' %}text-bg-danger{% elif event.status == 'tentative' %}text-bg-warning{% else %}text-bg-success{% endif %}">{{ event.status|title }}</span></td>
+              </tr>
+            {% endwith %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state text-center">
+      <div class="empty-state-icon">📭</div>
+      <h2 class="h4">No events in the import window</h2>
+      <p class="text-body-secondary">You can still add this calendar and refresh it later.</p>
+    </div>
+  {% endif %}
+
+  <div class="d-flex justify-content-end gap-2 mt-4">
+    <a class="btn btn-light" href="{% url 'home' %}">Cancel</a>
+    <form method="post" action="{% url 'calendar_confirm' token %}">
+      {% csrf_token %}
+      <button class="btn btn-success" type="submit">OK, Add Calendar</button>
+    </form>
+  </div>
+</div>
+{% endblock content %}

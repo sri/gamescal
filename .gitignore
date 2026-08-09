@@ -1,0 +1,24 @@
+# OSX #
+.DS_Store
+
+# Byte-compiled / optimized / DLL files #
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django #
+*.log
+db.sqlite3
+media
+staticfiles
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Virtual environment
+.venv
+
+# Screencast
+Lithium_Demo_2025.mp4

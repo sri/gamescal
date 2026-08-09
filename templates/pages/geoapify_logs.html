@@ -1,0 +1,100 @@
+{% extends '_base.html' %}
+
+{% block title %}Geoapify API Logs · Gamescal{% endblock title %}
+
+{% block content %}
+<div class="py-4">
+  <a class="back-link" href="{% url 'home' %}">← Back to events</a>
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3 mt-3 mb-4">
+    <div>
+      <div class="text-uppercase small fw-semibold text-primary mb-1">Developer tools</div>
+      <h1 class="mb-1">Geoapify API Logs</h1>
+      <p class="text-body-secondary mb-0">Requests, responses, timing, and usage totals. API keys are always redacted.</p>
+    </div>
+    {% if stats.total %}
+      <form method="post" action="{% url 'geoapify_api_logs_clear' %}" onsubmit="return confirm('Clear every Geoapify API log entry?')">
+        {% csrf_token %}
+        <button class="btn btn-outline-danger" type="submit">Clear Logs</button>
+      </form>
+    {% endif %}
+  </div>
+
+  <div class="api-log-stats mb-4">
+    <div class="calendar-stat calendar-stat-primary"><span class="calendar-stat-value">{{ stats.total }}</span><span class="calendar-stat-label">Total requests</span></div>
+    <div class="calendar-stat"><span class="calendar-stat-value">{{ stats.today }}</span><span class="calendar-stat-label">Today</span></div>
+    <div class="calendar-stat"><span class="calendar-stat-value">{{ stats.success_rate }}%</span><span class="calendar-stat-label">Success rate</span></div>
+    <div class="calendar-stat"><span class="calendar-stat-value">{{ stats.average_duration_ms|default:0|floatformat:0 }} ms</span><span class="calendar-stat-label">Average duration</span></div>
+    <div class="calendar-stat"><span class="calendar-stat-value">{{ stats.geocoding }}</span><span class="calendar-stat-label">Geocoding</span></div>
+    <div class="calendar-stat"><span class="calendar-stat-value">{{ stats.routing }}</span><span class="calendar-stat-label">Routing</span></div>
+    <div class="calendar-stat"><span class="calendar-stat-value text-success">{{ stats.successful }}</span><span class="calendar-stat-label">Successful</span></div>
+    <div class="calendar-stat"><span class="calendar-stat-value text-danger">{{ stats.failed }}</span><span class="calendar-stat-label">Failed · {{ stats.response_bytes|default:0|filesizeformat }} received</span></div>
+  </div>
+
+  <form method="get" class="card border-0 bg-body-tertiary mb-3">
+    <div class="card-body d-flex flex-column flex-sm-row align-items-sm-end gap-3 py-3">
+      <div>
+        <label class="form-label small fw-semibold" for="log-type">Request type</label>
+        <select class="form-select" id="log-type" name="type">
+          <option value="">All types</option>
+          <option value="geocoding" {% if request_type == 'geocoding' %}selected{% endif %}>Geocoding</option>
+          <option value="routing" {% if request_type == 'routing' %}selected{% endif %}>Routing</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label small fw-semibold" for="log-result">Result</label>
+        <select class="form-select" id="log-result" name="result">
+          <option value="">All results</option>
+          <option value="success" {% if result == 'success' %}selected{% endif %}>Successful</option>
+          <option value="error" {% if result == 'error' %}selected{% endif %}>Failed</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" type="submit">Filter</button>
+      {% if request_type or result %}<a class="btn btn-link" href="{% url 'geoapify_api_logs' %}">Reset</a>{% endif %}
+    </div>
+  </form>
+
+  {% if page %}
+    <div class="api-log-list">
+      {% for log in page %}
+        <article class="api-log-entry">
+          <div class="api-log-summary">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <span class="badge {% if log.success %}text-bg-success{% else %}text-bg-danger{% endif %}">{% if log.response_status %}HTTP {{ log.response_status }}{% else %}Request error{% endif %}</span>
+              <strong>{{ log.get_request_type_display }}</strong>
+              <code>{{ log.method }}</code>
+            </div>
+            <div class="small text-body-secondary">
+              {{ log.created_at|date:"M j, Y, g:i:s A" }} · {{ log.duration_ms }} ms · {{ log.response_size_bytes|filesizeformat }}
+              {% if log.response_truncated %} · <span class="text-warning-emphasis">response truncated</span>{% endif %}
+            </div>
+          </div>
+          <div class="small text-break mb-2"><code>{{ log.endpoint }}</code></div>
+          {% if log.error_message %}<div class="alert alert-danger py-2 small mb-2">{{ log.error_message }}</div>{% endif %}
+          <details class="api-log-details">
+            <summary>Request parameters</summary>
+            <pre>{{ log.request_params_pretty }}</pre>
+          </details>
+          <details class="api-log-details">
+            <summary>Response body</summary>
+            <pre>{{ log.response_body|default:"(empty response)" }}</pre>
+          </details>
+        </article>
+      {% endfor %}
+    </div>
+
+    {% if page.paginator.num_pages > 1 %}
+      <nav class="d-flex justify-content-between align-items-center mt-4" aria-label="API log pages">
+        {% if page.has_previous %}<a class="btn btn-outline-secondary" href="?page={{ page.previous_page_number }}{% if request_type %}&amp;type={{ request_type }}{% endif %}{% if result %}&amp;result={{ result }}{% endif %}">← Newer</a>{% else %}<span></span>{% endif %}
+        <span class="small text-body-secondary">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+        {% if page.has_next %}<a class="btn btn-outline-secondary" href="?page={{ page.next_page_number }}{% if request_type %}&amp;type={{ request_type }}{% endif %}{% if result %}&amp;result={{ result }}{% endif %}">Older →</a>{% else %}<span></span>{% endif %}
+      </nav>
+    {% endif %}
+  {% else %}
+    <div class="empty-state text-center">
+      <div class="empty-state-icon">🧾</div>
+      <h2 class="h4">No matching API requests</h2>
+      <p class="text-body-secondary mb-0">Travel estimates will add entries here when Geoapify is called.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock content %}

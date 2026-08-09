@@ -1,0 +1,144 @@
+{% extends '_base.html' %}
+{% load calendar_tags %}
+
+{% block title %}Events · Gamescal{% endblock title %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 py-4">
+  <div>
+    <h1 class="mb-1">Upcoming events</h1>
+    <p class="text-body-secondary mb-0">Events from your active calendars.</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap justify-content-md-end">
+    {% if show_api_logs %}<a class="btn btn-outline-secondary btn-lg" href="{% url 'geoapify_api_logs' %}">API Logs</a>{% endif %}
+    {% if show_demo_tools %}
+      <form method="post" action="{% url 'calendar_demo_populate' %}" onsubmit="return confirm('Replace the Travel Time Demo calendar with fresh scenarios?')">
+        {% csrf_token %}
+        <button class="btn btn-outline-warning btn-lg" type="submit" title="Development only">Populate Demo</button>
+      </form>
+    {% endif %}
+    <a class="btn btn-primary btn-lg flex-shrink-0" href="{% url 'calendar_add' %}">
+      <span aria-hidden="true">＋</span> Add Calendar
+    </a>
+  </div>
+</div>
+
+{% if calendars %}
+<section class="mb-4" aria-labelledby="calendars-heading">
+  <button class="calendar-collapse-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#calendarsCollapse" aria-expanded="false" aria-controls="calendarsCollapse">
+    <span>
+      <span class="h5 mb-0" id="calendars-heading">Calendars</span>
+      <span class="text-body-secondary small ms-2">{{ calendars|length }} configured</span>
+    </span>
+    <span class="calendar-collapse-chevron" aria-hidden="true">⌄</span>
+  </button>
+  <div class="collapse" id="calendarsCollapse">
+    <div class="calendar-list mt-2">
+      {% for calendar in calendars %}
+        <div class="calendar-row {% if not calendar.is_active %}calendar-inactive{% endif %}">
+          <div class="calendar-dot {% if not calendar.is_active %}calendar-dot-inactive{% endif %}"></div>
+          <div class="calendar-info">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <strong>{{ calendar.name }}</strong>
+              {% if calendar.is_active %}
+                <span class="badge text-bg-success">Active</span>
+              {% else %}
+                <span class="badge text-bg-secondary">Inactive</span>
+              {% endif %}
+              {% if calendar.last_sync_error %}
+                <span class="badge text-bg-danger" title="{{ calendar.last_sync_error }}">Sync error</span>
+              {% endif %}
+            </div>
+            <div class="small text-body-secondary">
+              {{ calendar.event_count }} event{{ calendar.event_count|pluralize }}
+              {% if calendar.last_synced_at %} · Updated {{ calendar.last_synced_at|timesince }} ago{% endif %}
+            </div>
+          </div>
+          <div class="calendar-actions">
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'calendar_edit' calendar.pk %}">Edit</a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section aria-labelledby="events-heading">
+  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
+    <nav class="nav nav-pills event-view-tabs" aria-label="Event views">
+      <a class="nav-link {% if event_view == 'games' %}active{% endif %}" href="?view=games{% if weekend_only %}&amp;weekend=1{% endif %}">Games</a>
+      <a class="nav-link {% if event_view == 'practices' %}active{% endif %}" href="?view=practices{% if weekend_only %}&amp;weekend=1{% endif %}">Practices</a>
+      <a class="nav-link {% if event_view == 'all' %}active{% endif %}" href="?view=all{% if weekend_only %}&amp;weekend=1{% endif %}">All</a>
+    </nav>
+    {% if weekend_only %}
+      <a class="btn btn-sm btn-primary" href="?view={{ event_view }}">✓ Weekend only</a>
+    {% else %}
+      <a class="btn btn-sm btn-outline-secondary" href="?view={{ event_view }}&amp;weekend=1">Weekend only</a>
+    {% endif %}
+  </div>
+  <h2 class="visually-hidden" id="events-heading">Event list</h2>
+  {% if events %}
+    <div class="table-responsive event-table-wrap">
+      <table class="table table-hover align-middle mb-0 event-table">
+        <thead>
+          <tr>
+            <th scope="col">Date</th>
+            <th scope="col">Time</th>
+            <th scope="col">Event</th>
+            <th scope="col">Location</th>
+            <th scope="col">Calendar</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for event in events %}
+            {% with local_start=event.starts_at|in_timezone:event.calendar.timezone destination=event.address|default:event.location %}
+              <tr class="{% if event.status == 'cancelled' %}event-cancelled {% endif %}{% if event.location %}event-location-colored{% endif %}"{% if event.location %} style="--location-hue: {{ event.location|location_hue }};"{% endif %}>
+                <td class="event-date">
+                  <span class="event-month">{{ local_start|date:"M" }}</span>
+                  <span class="event-day">{{ local_start|date:"j" }}</span>
+                  <span class="event-weekday">{{ local_start|date:"D" }}</span>
+                </td>
+                <td class="text-nowrap">
+                  {% if event.is_all_day %}<span class="text-body-secondary">All day</span>{% else %}{{ local_start|time:"g:i A" }}{% endif %}
+                </td>
+                <td class="event-title-cell">
+                  <div class="fw-semibold">
+                    {% if event.event_url %}<a href="{{ event.event_url }}" target="_blank" rel="noopener">{{ event.title }}</a>{% else %}{{ event.title }}{% endif %}
+                  </div>
+                  {% if event.team1 and event.team2 %}<div class="small text-body-secondary">{{ event.team1 }} vs {{ event.team2 }}</div>{% endif %}
+                  <span class="badge event-type-{{ event.event_type }} mt-1">{{ event.get_event_type_display }}</span>
+                  {% if event.status != 'confirmed' %}<span class="badge text-bg-warning mt-1">{{ event.get_status_display }}</span>{% endif %}
+                  {% if event.game_gap_after %}
+                    <span class="game-gap-badge {% if event.game_travel_tight %}game-gap-badge-tight{% endif %}">
+                      <span>⏱ {{ event.game_gap_after }} between games</span>
+                      {% if event.game_drive_after %}<span class="game-gap-detail">🚗 ~{{ event.game_drive_after }} drive{% if event.game_drive_distance_after %} ({{ event.game_drive_distance_after }}){% endif %} · {{ event.game_buffer_after }}</span>{% endif %}
+                    </span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if event.location %}
+                    <a class="map-link location-chip" href="{{ destination|google_maps_directions:event.directions_origin }}" target="_blank" rel="noopener" title="{% if event.directions_origin %}Directions from the previous game in Google Maps{% else %}Get directions in Google Maps{% endif %}">
+                      <span class="location-color-dot" aria-hidden="true"></span>{% if event.directions_origin %}<span class="visually-hidden">Directions from the previous game to </span>{% endif %}{{ event.location }} <span aria-hidden="true">↗</span>
+                    </a>
+                  {% else %}
+                    <span class="text-body-secondary">—</span>
+                  {% endif %}
+                </td>
+                <td><span class="calendar-label">{{ event.calendar.name }}</span></td>
+              </tr>
+            {% endwith %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state text-center">
+      <div class="empty-state-icon" aria-hidden="true">📅</div>
+      <h2 class="h4">No matching upcoming events</h2>
+      <p class="text-body-secondary">Try another event view, turn off the weekend filter, or add a calendar.</p>
+      {% if not calendars %}<a class="btn btn-primary" href="{% url 'calendar_add' %}">Add Calendar</a>{% endif %}
+    </div>
+  {% endif %}
+</section>
+{% endblock content %}

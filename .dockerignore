@@ -1,0 +1,4 @@
+# Exclude local environments and secrets from image builds
+.venv
+.env
+.env.*

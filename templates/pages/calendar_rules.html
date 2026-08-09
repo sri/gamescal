@@ -1,0 +1,90 @@
+{% extends '_base.html' %}
+
+{% block title %}Rules for {{ calendar.name }} · Gamescal{% endblock title %}
+
+{% block content %}
+<div class="py-4">
+  <a class="back-link" href="{% url 'calendar_edit' calendar.pk %}">← Back to calendar settings</a>
+  <div class="mt-3 mb-4">
+    <div class="text-uppercase small fw-semibold text-primary mb-1">Calendar rules</div>
+    <h1 class="mb-1">{{ calendar.name }}</h1>
+    <p class="text-body-secondary mb-0">Classify this calendar’s events using case-insensitive keywords.</p>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <h2 class="h5 mb-0">Classification rules</h2>
+        <span class="small text-body-secondary">First match wins</span>
+      </div>
+      {% if rules %}
+        <div class="rule-list">
+          {% for rule in rules %}
+            <div class="rule-row {% if not rule.is_active %}rule-inactive{% endif %}">
+              <div class="rule-priority" title="Priority">{{ rule.priority }}</div>
+              <div class="rule-info">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                  <strong>{{ rule.name }}</strong>
+                  <span class="badge event-type-{{ rule.event_type }}">{{ rule.get_event_type_display }}</span>
+                  {% if not rule.is_active %}<span class="badge text-bg-secondary">Disabled</span>{% endif %}
+                </div>
+                <div class="small text-body-secondary">
+                  {{ rule.get_match_field_display }} contains <code>{{ rule.pattern }}</code>
+                </div>
+              </div>
+              <div class="rule-actions">
+                <a class="btn btn-sm btn-outline-primary" href="{% url 'calendar_rule_edit' calendar.pk rule.pk %}">Edit</a>
+                <form method="post" action="{% url 'calendar_rule_toggle' calendar.pk rule.pk %}">
+                  {% csrf_token %}
+                  <button class="btn btn-sm btn-outline-secondary" type="submit">{% if rule.is_active %}Disable{% else %}Enable{% endif %}</button>
+                </form>
+                <form method="post" action="{% url 'calendar_rule_delete' calendar.pk rule.pk %}" onsubmit="return confirm('Delete this rule?')">
+                  {% csrf_token %}
+                  <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                </form>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-rules text-center">
+          <h3 class="h6">No calendar-specific rules</h3>
+          <p class="small text-body-secondary mb-0">Built-in detection still recognizes practice, training, workout, game, match, scrimmage, tournament, and matchup titles.</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm sticky-lg-top rule-form-card">
+        <div class="card-body p-4">
+          <h2 class="h5">{% if editing_rule %}Edit rule{% else %}Add a rule{% endif %}</h2>
+          <p class="small text-body-secondary">Use a keyword such as <code>practice</code>. Matching ignores capitalization.</p>
+          <form method="post" class="rule-form">
+            {% csrf_token %}
+            {% for field in form %}
+              {% if field.name == 'is_active' %}
+                <div class="form-check mb-3">
+                  {{ field }}
+                  <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                  {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </div>
+              {% else %}
+                <div class="mb-3">
+                  <label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                  {{ field }}
+                  {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                  {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </div>
+              {% endif %}
+            {% endfor %}
+            <div class="d-flex justify-content-end gap-2">
+              {% if editing_rule %}<a class="btn btn-light" href="{% url 'calendar_rules' calendar.pk %}">Cancel</a>{% endif %}
+              <button class="btn btn-primary" type="submit">{% if editing_rule %}Save Rule{% else %}Add Rule{% endif %}</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}

@@ -1,0 +1,131 @@
+{% extends '_base.html' %}
+
+{% block title %}Edit {{ calendar.name }} · Gamescal{% endblock title %}
+
+{% block content %}
+<div class="py-4">
+  <a class="back-link" href="{% url 'home' %}">← Back to events</a>
+
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mt-3 mb-4">
+    <div>
+      <div class="text-uppercase small fw-semibold text-primary mb-1">Calendar settings</div>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <h1 class="mb-0">{{ calendar.name }}</h1>
+        {% if calendar.is_active %}
+          <span class="badge text-bg-success">Active</span>
+        {% else %}
+          <span class="badge text-bg-secondary">Inactive</span>
+        {% endif %}
+      </div>
+      <p class="text-body-secondary mt-2 mb-0">Manage calendar details, events, rules, and synchronization.</p>
+    </div>
+    <a class="btn btn-outline-primary" href="{% url 'calendar_rules' calendar.pk %}">Manage Rules <span class="badge text-bg-primary ms-1">{{ rule_count }}</span></a>
+  </div>
+
+  {% if calendar.last_sync_error %}
+    <div class="alert alert-danger">
+      <strong>Last refresh failed:</strong> {{ calendar.last_sync_error }}
+    </div>
+  {% endif %}
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+          <h2 class="h5 mb-3">Calendar details</h2>
+          <form method="post" class="calendar-form">
+            {% csrf_token %}
+            {% for field in form %}
+              <div class="mb-4">
+                <label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+              </div>
+            {% endfor %}
+            <div class="d-flex justify-content-end">
+              <button class="btn btn-primary" type="submit">Save Changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card border-danger-subtle">
+        <div class="card-body p-4">
+          <h2 class="h5 text-danger">Delete calendar</h2>
+          <p class="text-body-secondary">Permanently delete this calendar, its {{ event_counts.total }} event{{ event_counts.total|pluralize }}, and all classification rules. This cannot be undone.</p>
+          <form method="post" action="{% url 'calendar_delete' calendar.pk %}" onsubmit="return confirm('Delete {{ calendar.name|escapejs }} and all of its events? This cannot be undone.')">
+            {% csrf_token %}
+            <button class="btn btn-danger" type="submit">Delete Calendar</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="calendar-stats mb-4">
+        <div class="calendar-stat calendar-stat-primary">
+          <span class="calendar-stat-value">{{ event_counts.total }}</span>
+          <span class="calendar-stat-label">Total events</span>
+        </div>
+        <div class="calendar-stat">
+          <span class="calendar-stat-value">{{ event_counts.upcoming }}</span>
+          <span class="calendar-stat-label">Upcoming</span>
+        </div>
+        <div class="calendar-stat">
+          <span class="calendar-stat-value">{{ event_counts.games }}</span>
+          <span class="calendar-stat-label">Games</span>
+        </div>
+        <div class="calendar-stat">
+          <span class="calendar-stat-value">{{ event_counts.practices }}</span>
+          <span class="calendar-stat-label">Practices</span>
+        </div>
+        <div class="calendar-stat">
+          <span class="calendar-stat-value">{{ event_counts.tournaments }}</span>
+          <span class="calendar-stat-label">Tournaments</span>
+        </div>
+        <div class="calendar-stat">
+          <span class="calendar-stat-value">{{ event_counts.other }}</span>
+          <span class="calendar-stat-label">Other</span>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+          <h2 class="h5 mb-3">Actions</h2>
+          <div class="d-grid gap-2">
+            <form method="post" action="{% url 'calendar_refresh' calendar.pk %}" class="d-grid">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="edit">
+              <button class="btn btn-outline-primary" type="submit">Refresh Events</button>
+            </form>
+            <form method="post" action="{% url 'calendar_toggle' calendar.pk %}" class="d-grid">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="edit">
+              <button class="btn {% if calendar.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}" type="submit">
+                {% if calendar.is_active %}Deactivate Calendar{% else %}Activate Calendar{% endif %}
+              </button>
+            </form>
+            <a class="btn btn-outline-secondary" href="{% url 'calendar_rules' calendar.pk %}">Manage Classification Rules</a>
+            {% if calendar.website_url %}<a class="btn btn-outline-secondary" href="{{ calendar.website_url }}" target="_blank" rel="noopener">Open Website ↗</a>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="card border-0 bg-body-tertiary">
+        <div class="card-body p-4">
+          <h2 class="h5 mb-3">Information</h2>
+          <dl class="calendar-metadata mb-0">
+            <dt>Format</dt><dd>{{ calendar.source_format|upper }}</dd>
+            <dt>Timezone</dt><dd>{{ calendar.timezone }}</dd>
+            <dt>Created</dt><dd>{{ calendar.created_at|date:"M j, Y, g:i A" }}</dd>
+            <dt>Last changed</dt><dd>{{ calendar.updated_at|date:"M j, Y, g:i A" }}</dd>
+            <dt>Last refreshed</dt><dd>{% if calendar.last_synced_at %}{{ calendar.last_synced_at|date:"M j, Y, g:i A" }}{% else %}Never{% endif %}</dd>
+            <dt>Rules</dt><dd>{{ rule_count }}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
