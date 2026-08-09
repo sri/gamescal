@@ -337,6 +337,190 @@ a {
   text-decoration: line-through;
 }
 
+.mobile-event-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.mobile-event-card {
+  position: relative;
+  overflow: visible;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.85rem;
+  box-shadow: 0 0.25rem 1rem rgb(0 0 0 / 7%);
+  background: var(--bs-body-bg);
+}
+
+.mobile-event-location-colored {
+  border-left: 0.35rem solid hsl(var(--location-hue) 68% 48%);
+  background: hsl(var(--location-hue) 72% 98%);
+}
+
+.mobile-event-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.8rem 0.9rem;
+  border-bottom: 1px solid rgb(0 0 0 / 7%);
+}
+
+.mobile-event-when {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.mobile-event-date {
+  display: grid;
+  min-width: 3.2rem;
+  place-items: center;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.6rem;
+  color: var(--bs-primary-text-emphasis);
+  background: var(--bs-primary-bg-subtle);
+  line-height: 1;
+}
+
+.mobile-event-date span {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mobile-event-date strong {
+  margin-top: 0.2rem;
+  font-size: 1.45rem;
+}
+
+.mobile-event-time {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.mobile-event-time span {
+  color: var(--bs-secondary-color);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.mobile-event-time strong {
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.mobile-calendar-label {
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-event-body {
+  padding: 1rem 0.9rem 0.85rem;
+}
+
+.mobile-event-title {
+  margin: 0 0 0.65rem;
+  font-size: 1.15rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.mobile-event-title a {
+  color: inherit;
+}
+
+.mobile-location-link {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0 0.9rem 0.9rem;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid hsl(var(--location-hue) 55% 78%);
+  border-radius: 0.65rem;
+  color: hsl(var(--location-hue) 55% 24%);
+  background: hsl(var(--location-hue) 72% 92%);
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-decoration: none;
+}
+
+.mobile-location-link:hover {
+  color: hsl(var(--location-hue) 65% 18%);
+  background: hsl(var(--location-hue) 72% 88%);
+}
+
+.mobile-location-link .location-color-dot {
+  margin-top: 0.3rem;
+}
+
+.mobile-location-text {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.mobile-location-arrow {
+  flex: 0 0 auto;
+  font-size: 1rem;
+}
+
+.mobile-event-cancelled {
+  opacity: 0.65;
+}
+
+.mobile-event-cancelled .mobile-event-title {
+  text-decoration: line-through;
+}
+
+.mobile-event-has-gap {
+  margin-bottom: 3.5rem;
+}
+
+.mobile-game-gap {
+  position: absolute;
+  z-index: 5;
+  bottom: -2.75rem;
+  left: 50%;
+  display: flex;
+  width: calc(100% - 1.5rem);
+  min-height: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem 0.6rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid #fb923c;
+  border-radius: 0.7rem;
+  box-shadow: 0 0.2rem 0.65rem rgb(234 88 12 / 24%);
+  color: #7c2d12;
+  background: #ffedd5;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+.mobile-game-gap-detail {
+  padding-left: 0.6rem;
+  border-left: 1px solid rgb(124 45 18 / 30%);
+}
+
+.mobile-game-gap-tight {
+  border-color: #ef4444;
+  box-shadow: 0 0.2rem 0.65rem rgb(220 38 38 / 24%);
+  color: #7f1d1d;
+  background: #fee2e2;
+}
+
+.mobile-game-gap-tight .mobile-game-gap-detail {
+  border-left-color: rgb(127 29 29 / 30%);
+}
+
 .event-type-game {
   color: #084298;
   background: #cfe2ff;
@@ -522,6 +706,32 @@ a {
 }
 
 @media (max-width: 575.98px) {
+  .home-hero {
+    padding-top: 2rem !important;
+    padding-bottom: 1.5rem !important;
+  }
+
+  .home-hero h1 {
+    font-size: 2rem;
+  }
+
+  .home-actions {
+    width: 100%;
+  }
+
+  .home-actions .btn {
+    font-size: 1rem;
+  }
+
+  .event-view-tabs {
+    width: 100%;
+  }
+
+  .event-view-tabs .nav-link {
+    flex: 1;
+    text-align: center;
+  }
+
   .calendar-row {
     align-items: flex-start;
     flex-wrap: wrap;

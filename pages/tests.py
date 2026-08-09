@@ -197,6 +197,8 @@ class PageTests(TestCase):
         response = self.client.get(reverse("home"))
 
         self.assertContains(response, "Visible game")
+        self.assertContains(response, "mobile-event-card")
+        self.assertContains(response, "d-none d-md-block table-responsive")
         self.assertNotContains(response, "Hidden game")
 
     def test_home_event_views_and_weekend_filter(self):
@@ -277,7 +279,7 @@ class PageTests(TestCase):
         self.assertEqual(events[1].game_drive_distance_after, "10 mi")
         self.assertEqual(events[1].game_buffer_after, "10 min buffer")
         self.assertEqual(events[2].game_gap_after, "")
-        self.assertContains(response, "30 min between games", count=1)
+        self.assertContains(response, "30 min between games", count=2)
         self.assertContains(response, "~20 min drive")
         self.assertContains(response, "10 min buffer")
 
