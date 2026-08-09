@@ -278,7 +278,9 @@ class PageTests(TestCase):
         calendar = Calendar.objects.create(
             name="Tournament", cal_url="https://example.com/tournament.ics"
         )
-        first_start = timezone.now() + timedelta(days=1)
+        first_start = (timezone.now() + timedelta(days=1)).astimezone(
+            ZoneInfo("America/Phoenix")
+        ).replace(hour=12, minute=0, second=0, microsecond=0)
         starts = (
             first_start,
             first_start + timedelta(minutes=50),
