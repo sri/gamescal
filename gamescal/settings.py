@@ -16,16 +16,30 @@ GEOAPIFY_API_KEY = os.getenv("GEOAPIFY_API_KEY", "")
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#secret-key
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-0peo@#x9jur3!h$ryje!$879xww8y1y66jx!%*#ymhg&jkozs2"
+SECRET_KEY = (
+    os.getenv("DJANGO_SECRET_KEY")
+    or "django-insecure-gamescal-local-development-only"
+)
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#debug
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DJANGO_DEBUG", "1").lower() in {"1", "true", "yes"}
 ENABLE_DEMO_TOOLS = DEBUG
 ENABLE_API_LOG_VIEW = DEBUG
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = ["localhost", "0.0.0.0", "127.0.0.1"]
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.getenv(
+        "DJANGO_ALLOWED_HOSTS", "localhost,0.0.0.0,127.0.0.1"
+    ).split(",")
+    if host.strip()
+]
+
+# Trust HTTPS information forwarded by the Caddy reverse proxy.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
 
 
 # Application definition
@@ -203,6 +217,10 @@ ACCOUNT_UNIQUE_EMAIL = True
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#csrf-trusted-origins
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:8000",  # Default Django dev server
-    "http://127.0.0.1:8000",  # Alternative local address
+    origin.strip()
+    for origin in os.getenv(
+        "DJANGO_CSRF_TRUSTED_ORIGINS",
+        "http://localhost:8000,http://127.0.0.1:8000",
+    ).split(",")
+    if origin.strip()
 ]

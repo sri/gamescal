@@ -61,3 +61,18 @@ docker compose up --build
 ```
 
 The SQLite database is stored in `db.sqlite3` at the project root.
+
+## Production configuration
+
+Configure production through environment variables rather than committed files:
+
+```console
+DJANGO_DEBUG=0
+DJANGO_SECRET_KEY=replace-with-a-random-secret
+DJANGO_ALLOWED_HOSTS=g.example.com
+DJANGO_CSRF_TRUSTED_ORIGINS=https://g.example.com
+GEOAPIFY_API_KEY=optional-provider-key
+```
+
+The included Gunicorn dependency can serve the application behind an HTTPS reverse
+proxy such as Caddy.
