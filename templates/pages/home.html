@@ -48,9 +48,9 @@
       <a class="btn btn-primary" href="{% url 'calendar_add' %}">
         <span aria-hidden="true">＋</span> Add Calendar
       </a>
-      {% if show_api_logs %}<a class="btn btn-outline-secondary" href="{% url 'geoapify_api_logs' %}">API Logs</a>{% endif %}
+      {% if show_api_logs %}<a class="btn btn-outline-secondary" href="{% url 'geoapify_api_logs' %}{% if request_debug %}?debug=1{% endif %}">API Logs</a>{% endif %}
       {% if show_demo_tools %}
-        <form method="post" action="{% url 'calendar_demo_populate' %}" onsubmit="return confirm('Replace the Travel Time Demo calendar with fresh scenarios?')">
+        <form method="post" action="{% url 'calendar_demo_populate' %}{% if request_debug %}?debug=1{% endif %}" onsubmit="return confirm('Replace the Travel Time Demo calendar with fresh scenarios?')">
           {% csrf_token %}
           <button class="btn btn-outline-warning" type="submit" title="Development only">Populate Demo</button>
         </form>

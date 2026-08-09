@@ -10,6 +10,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Avg, Count, Q, Sum
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView
@@ -32,6 +33,17 @@ GAME_EVENT_TYPES = {
     CalendarEvent.EventType.TOURNAMENT,
 }
 DEMO_CALENDAR_URL = "https://gamescal.local/travel-demo.ics"
+
+
+def _debug_tools_requested(request):
+    return request.GET.get("debug") == "1"
+
+
+def _debug_redirect(request, view_name):
+    url = reverse(view_name)
+    if _debug_tools_requested(request):
+        url = f"{url}?debug=1"
+    return redirect(url)
 
 
 def _format_game_gap(total_minutes):
@@ -206,8 +218,10 @@ class HomePageView(TemplateView):
         context["events"] = events
         context["event_view"] = event_view
         context["weekend_only"] = weekend_only
-        context["show_demo_tools"] = settings.ENABLE_DEMO_TOOLS
-        context["show_api_logs"] = settings.ENABLE_API_LOG_VIEW
+        request_debug = _debug_tools_requested(self.request)
+        context["request_debug"] = request_debug
+        context["show_demo_tools"] = settings.ENABLE_DEMO_TOOLS or request_debug
+        context["show_api_logs"] = settings.ENABLE_API_LOG_VIEW or request_debug
         return context
 
 
@@ -216,7 +230,7 @@ class AboutPageView(TemplateView):
 
 
 def geoapify_api_logs(request):
-    if not settings.ENABLE_API_LOG_VIEW:
+    if not (settings.ENABLE_API_LOG_VIEW or _debug_tools_requested(request)):
         raise Http404
 
     logs = GeoapifyAPILog.objects.all()
@@ -266,17 +280,18 @@ def geoapify_api_logs(request):
             "stats": stats,
             "request_type": request_type,
             "result": result,
+            "request_debug": _debug_tools_requested(request),
         },
     )
 
 
 @require_POST
 def clear_geoapify_api_logs(request):
-    if not settings.ENABLE_API_LOG_VIEW:
+    if not (settings.ENABLE_API_LOG_VIEW or _debug_tools_requested(request)):
         raise Http404
     deleted, _details = GeoapifyAPILog.objects.all().delete()
     messages.success(request, f"Cleared {deleted} Geoapify API log entries.")
-    return redirect("geoapify_api_logs")
+    return _debug_redirect(request, "geoapify_api_logs")
 
 
 def _demo_location_key(value):
@@ -299,7 +314,7 @@ def _demo_location_key(value):
 
 @require_POST
 def populate_demo_calendar(request):
-    if not settings.ENABLE_DEMO_TOOLS:
+    if not (settings.ENABLE_DEMO_TOOLS or _debug_tools_requested(request)):
         raise Http404
 
     unique_locations = {}
@@ -316,7 +331,7 @@ def populate_demo_calendar(request):
             request,
             "Add calendars containing at least three distinct locations first.",
         )
-        return redirect("home")
+        return _debug_redirect(request, "home")
 
     venue_a = locations[0]
     venue_b = locations[-1]
@@ -398,7 +413,7 @@ def populate_demo_calendar(request):
         request,
         "Populated the Travel Time Demo calendar with seven scheduling scenarios.",
     )
-    return redirect("home")
+    return _debug_redirect(request, "home")
 
 
 def add_calendar(request):

@@ -70,6 +70,29 @@ class PageTests(TestCase):
         self.assertContains(response, "Populate Demo")
         self.assertContains(response, "API Logs")
 
+    @override_settings(ENABLE_API_LOG_VIEW=False, ENABLE_DEMO_TOOLS=False)
+    def test_debug_query_enables_developer_tools(self):
+        regular = self.client.get(reverse("home"))
+        self.assertNotContains(regular, "Populate Demo")
+        self.assertNotContains(regular, "API Logs")
+
+        debug_home = self.client.get(reverse("home"), {"debug": "1"})
+        self.assertContains(debug_home, "Populate Demo")
+        self.assertContains(debug_home, "API Logs")
+        self.assertContains(
+            debug_home, f'{reverse("geoapify_api_logs")}?debug=1'
+        )
+        self.assertContains(
+            debug_home, f'{reverse("calendar_demo_populate")}?debug=1'
+        )
+
+        logs = self.client.get(reverse("geoapify_api_logs"), {"debug": "1"})
+        self.assertEqual(logs.status_code, 200)
+        demo = self.client.post(
+            f'{reverse("calendar_demo_populate")}?debug=1'
+        )
+        self.assertRedirects(demo, f'{reverse("home")}?debug=1')
+
     def test_geoapify_log_page_shows_counts_filters_and_payloads(self):
         GeoapifyAPILog.objects.create(
             request_type=GeoapifyAPILog.RequestType.GEOCODING,
