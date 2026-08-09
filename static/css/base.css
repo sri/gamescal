@@ -11,10 +11,6 @@ html {
   }
 }
 
-body {
-  margin-bottom: 60px; /* Margin bottom by footer height */
-}
-
 .container {
   max-width: 1180px;
 }
@@ -713,23 +709,6 @@ a {
 }
 
 @media (max-width: 575.98px) {
-  .home-hero {
-    padding-top: 2rem !important;
-    padding-bottom: 1.5rem !important;
-  }
-
-  .home-hero h1 {
-    font-size: 2rem;
-  }
-
-  .home-actions {
-    width: 100%;
-  }
-
-  .home-actions .btn {
-    font-size: 1rem;
-  }
-
   .event-view-tabs {
     width: 100%;
   }
@@ -764,13 +743,4 @@ a {
 
 .pricing-header {
   max-width: 700px;
-}
-
-.footer {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  height: 60px; /* Set the fixed height of the footer here */
-  line-height: 60px; /* Vertically center the text there */
-  background-color: #f5f5f5;
 }

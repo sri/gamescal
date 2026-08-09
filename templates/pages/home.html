@@ -4,27 +4,7 @@
 {% block title %}Events · Gamescal{% endblock title %}
 
 {% block content %}
-<div class="home-hero d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 py-4">
-  <div>
-    <h1 class="mb-1">Upcoming events</h1>
-    <p class="text-body-secondary mb-0">Events from your active calendars.</p>
-  </div>
-  <div class="home-actions d-flex gap-2 flex-wrap justify-content-md-end">
-    {% if show_api_logs %}<a class="btn btn-outline-secondary btn-lg" href="{% url 'geoapify_api_logs' %}">API Logs</a>{% endif %}
-    {% if show_demo_tools %}
-      <form method="post" action="{% url 'calendar_demo_populate' %}" onsubmit="return confirm('Replace the Travel Time Demo calendar with fresh scenarios?')">
-        {% csrf_token %}
-        <button class="btn btn-outline-warning btn-lg" type="submit" title="Development only">Populate Demo</button>
-      </form>
-    {% endif %}
-    <a class="btn btn-primary btn-lg flex-shrink-0" href="{% url 'calendar_add' %}">
-      <span aria-hidden="true">＋</span> Add Calendar
-    </a>
-  </div>
-</div>
-
-{% if calendars %}
-<section class="mb-4" aria-labelledby="calendars-heading">
+<section class="my-4" aria-labelledby="calendars-heading">
   <button class="calendar-collapse-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#calendarsCollapse" aria-expanded="false" aria-controls="calendarsCollapse">
     <span>
       <span class="h5 mb-0" id="calendars-heading">Calendars</span>
@@ -33,6 +13,7 @@
     <span class="calendar-collapse-chevron" aria-hidden="true">⌄</span>
   </button>
   <div class="collapse" id="calendarsCollapse">
+    {% if calendars %}
     <div class="calendar-list mt-2">
       {% for calendar in calendars %}
         <div class="calendar-row {% if not calendar.is_active %}calendar-inactive{% endif %}">
@@ -60,9 +41,23 @@
         </div>
       {% endfor %}
     </div>
+    {% else %}
+      <p class="text-body-secondary mt-3 mb-0">No calendars configured yet.</p>
+    {% endif %}
+    <div class="calendar-collapse-actions d-flex gap-2 flex-wrap mt-3">
+      <a class="btn btn-primary" href="{% url 'calendar_add' %}">
+        <span aria-hidden="true">＋</span> Add Calendar
+      </a>
+      {% if show_api_logs %}<a class="btn btn-outline-secondary" href="{% url 'geoapify_api_logs' %}">API Logs</a>{% endif %}
+      {% if show_demo_tools %}
+        <form method="post" action="{% url 'calendar_demo_populate' %}" onsubmit="return confirm('Replace the Travel Time Demo calendar with fresh scenarios?')">
+          {% csrf_token %}
+          <button class="btn btn-outline-warning" type="submit" title="Development only">Populate Demo</button>
+        </form>
+      {% endif %}
+    </div>
   </div>
 </section>
-{% endif %}
 
 <section aria-labelledby="events-heading">
   <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
@@ -184,7 +179,6 @@
       <div class="empty-state-icon" aria-hidden="true">📅</div>
       <h2 class="h4">No matching upcoming events</h2>
       <p class="text-body-secondary">Try another event view, turn off the weekend filter, or add a calendar.</p>
-      {% if not calendars %}<a class="btn btn-primary" href="{% url 'calendar_add' %}">Add Calendar</a>{% endif %}
     </div>
   {% endif %}
 </section>

@@ -63,6 +63,10 @@ class PageTests(TestCase):
         self.assertTemplateUsed(response, "pages/home.html")
         self.assertContains(response, "Gamescal")
         self.assertContains(response, "Add Calendar")
+        self.assertContains(response, "No calendars configured yet.")
+        self.assertNotContains(response, "Upcoming events")
+        self.assertNotContains(response, "Events from your active calendars.")
+        self.assertNotContains(response, "All your events in one place.")
         self.assertContains(response, "Populate Demo")
         self.assertContains(response, "API Logs")
 
