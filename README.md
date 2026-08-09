@@ -1,33 +1,87 @@
-# Gamescal
+<p align="center">
+  <img src="docs/assets/gcal-logo.svg" alt="Gcal — one schedule, every game" width="620">
+</p>
 
-Gamescal is a Django 6.1 project running on Python 3.14.6 and SQLite. It was
-scaffolded from the open-source [Lithium](https://github.com/wsvincent/lithium)
-starter.
+<p align="center">
+  <strong>Your sports calendars, games, locations, and travel plans in one mobile-friendly view.</strong>
+</p>
 
-## Included
+<p align="center">
+  <a href="#features">Features</a>
+  ·
+  <a href="#local-setup">Local setup</a>
+  ·
+  <a href="#technology">Technology</a>
+</p>
 
-- iCalendar (ICS) feed import with an event preview and confirmation step
-- Recurring event expansion, calendar refresh, and active/inactive calendars
-- Automatic game, practice, tournament, and other event classification
-- Per-calendar keyword rules with immediate event reclassification
-- Games, practices, and all-events views with a weekend-only filter
-- Cached Geoapify driving-time, distance, and between-game buffer estimates
-- Development-only Geoapify request/response logs with redacted API keys and usage statistics
-- A unified table of upcoming events
-- SQLite as the only configured database
-- Email-based authentication with django-allauth
-- A custom user model
-- Bootstrap 5 and crispy forms
-- WhiteNoise static-file serving
-- Django Debug Toolbar
-- uv dependency management
+<p align="center">
+  <img alt="Python 3.14.6" src="https://img.shields.io/badge/Python-3.14.6-3776AB?logo=python&logoColor=white">
+  <img alt="Django 6.1" src="https://img.shields.io/badge/Django-6.1-092E20?logo=django&logoColor=white">
+  <img alt="SQLite 3.53.1" src="https://img.shields.io/badge/SQLite-3.53.1-003B57?logo=sqlite&logoColor=white">
+  <img alt="Bootstrap 5.3.3" src="https://img.shields.io/badge/Bootstrap-5.3.3-7952B3?logo=bootstrap&logoColor=white">
+</p>
 
-Calendar imports include events from the previous 30 days through the next year.
-All event times are interpreted and displayed in Arizona time (`America/Phoenix`),
-which remains on Mountain Standard Time year-round. XML calendar feeds are not yet
-supported because they require a provider-specific schema/parser.
+## Why Gcal?
+
+Sports schedules rarely live in one place. A team may use one calendar, a league
+another, and a tournament organizer something else. Finding the next game can mean
+switching between apps and browser tabs just to answer three simple questions:
+**When is it? Where is it? How long will it take to get there?**
+
+Gcal brings compatible iCalendar feeds together into one schedule. It is designed
+to be easy to scan on a phone, opens locations directly in Google Maps, and can
+estimate driving time, distance, and the usable buffer between games.
+
+## Features
+
+- **One schedule** — import multiple ICS calendars and see their events together.
+- **Mobile friendly** — compact event cards make dates, times, venues, and teams easy
+  to scan on the go.
+- **Useful event views** — switch between games, practices, all events, and weekends.
+- **Smart classification** — classify games, practices, tournaments, and other events
+  automatically, with custom rules for each calendar.
+- **Directions in one tap** — open a venue in Google Maps, including directions from
+  the previous game when the location changes.
+- **Travel estimates** — use Geoapify to estimate drive time, distance, and the buffer
+  available between same-day games.
+- **Calendar management** — preview before importing, refresh feeds, disable calendars,
+  edit classification rules, and inspect calendar statistics.
+- **Recurring events** — expand recurring ICS events into individual schedule entries.
+- **Efficient API usage** — cache successful route estimates for 30 days and limit new
+  route requests per page load.
+- **Arizona time** — interpret and display schedules in `America/Phoenix`, which does
+  not observe daylight saving time.
+
+Calendar imports cover events from the previous 30 days through the next year.
+Games are treated as 50 minutes long when calculating between-game gaps.
+
+## Technology
+
+| Component | Version | Purpose |
+| --- | ---: | --- |
+| [Python](https://www.python.org/) | **3.14.6** | Application runtime |
+| [Django](https://www.djangoproject.com/) | **6.1** | Web framework, ORM, forms, and administration |
+| [SQLite](https://sqlite.org/) | **3.53.1** | Application database |
+| [Bootstrap](https://getbootstrap.com/) | **5.3.3** | Responsive user interface |
+| [django-allauth](https://allauth.org/) | **65.19.0** | Email-based accounts and authentication |
+| [Gunicorn](https://gunicorn.org/) | **25.3.0** | Production WSGI server |
+| [WhiteNoise](https://whitenoise.readthedocs.io/) | **6.12.0** | Production static-file serving |
+| [icalendar](https://icalendar.readthedocs.io/) | **7.2.2** | ICS parsing |
+| [recurring-ical-events](https://recurring-ical-events.readthedocs.io/) | **3.8.2** | Recurring-event expansion |
+| [Geoapify](https://www.geoapify.com/) | API | Geocoding and route estimates |
+| [uv](https://docs.astral.sh/uv/) | **0.12.3** | Python and dependency management |
+
+### Initial template
+
+Gcal was originally scaffolded from William Vincent's open-source
+[Lithium](https://github.com/wsvincent/lithium) Django starter. Lithium follows a
+rolling `main` branch and does not publish numbered releases, so there is no template
+version to report. The application has since been substantially extended for calendar
+imports, event classification, mobile schedules, and travel planning.
 
 ## Local setup
+
+Requirements: `uv` and a platform supported by Python 3.14.6.
 
 ```console
 uv sync
@@ -37,17 +91,20 @@ uv run python manage.py createsuperuser
 uv run python manage.py runserver
 ```
 
-The application will be available at <http://127.0.0.1:8000/>. Add your
-Geoapify project key to `.env` as `GEOAPIFY_API_KEY=...` to enable travel
-estimates. The application calculates at most five new route pairs per page
-load and caches successful estimates for 30 days. In development, the
-**Populate Demo** button creates an idempotent seven-game travel scenario using
-locations already present in the database; the endpoint is unavailable when
-`DEBUG` is false. The development-only **API Logs** page records Geoapify
-request parameters, response payloads, status codes, response sizes, and timing;
-API keys are redacted before storage.
+Open <http://127.0.0.1:8000/>.
 
-## Tests and checks
+Add a Geoapify project key to `.env` to enable geocoding and travel estimates:
+
+```console
+GEOAPIFY_API_KEY=your-project-key
+```
+
+When debug mode is enabled, **Populate Demo** creates a repeatable seven-game travel
+scenario using locations already stored in the database. The development-only
+**API Logs** page shows redacted Geoapify requests, responses, timing, and usage
+statistics.
+
+## Tests
 
 ```console
 uv run python manage.py check
@@ -60,11 +117,12 @@ uv run python manage.py test
 docker compose up --build
 ```
 
-The SQLite database is stored in `db.sqlite3` at the project root.
+The default SQLite database is stored in `db.sqlite3` at the project root.
 
 ## Production configuration
 
-Configure production through environment variables rather than committed files:
+Keep production configuration and secrets in environment variables or an untracked
+`.env` file:
 
 ```console
 DJANGO_DEBUG=0
@@ -74,5 +132,10 @@ DJANGO_CSRF_TRUSTED_ORIGINS=https://g.example.com
 GEOAPIFY_API_KEY=optional-provider-key
 ```
 
-The included Gunicorn dependency can serve the application behind an HTTPS reverse
-proxy such as Caddy.
+Gunicorn can serve the application behind an HTTPS reverse proxy such as Caddy.
+Never commit `.env`, API keys, databases, calendar exports, or personal event data.
+
+## Current limitation
+
+Gcal imports iCalendar/ICS feeds. XML calendar feeds are not supported because they
+require a provider-specific schema and parser.
