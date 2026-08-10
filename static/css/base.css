@@ -544,14 +544,14 @@ a {
   background: #e2e3e5;
 }
 
-.event-view-tabs {
+.event-filter-tabs {
   padding: 0.2rem;
   border: 1px solid var(--bs-border-color);
   border-radius: 0.6rem;
   background: var(--bs-tertiary-bg);
 }
 
-.event-view-tabs .nav-link {
+.event-filter-tabs .nav-link {
   padding: 0.35rem 0.85rem;
 }
 
@@ -709,11 +709,11 @@ a {
 }
 
 @media (max-width: 575.98px) {
-  .event-view-tabs {
+  .event-filter-tabs {
     width: 100%;
   }
 
-  .event-view-tabs .nav-link {
+  .event-filter-tabs .nav-link {
     flex: 1;
     text-align: center;
   }

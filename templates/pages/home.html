@@ -60,17 +60,16 @@
 </section>
 
 <section aria-labelledby="events-heading">
-  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
-    <nav class="nav nav-pills event-view-tabs" aria-label="Event views">
-      <a class="nav-link {% if event_view == 'games' %}active{% endif %}" href="?view=games{% if weekend_only %}&amp;weekend=1{% endif %}">Games</a>
-      <a class="nav-link {% if event_view == 'practices' %}active{% endif %}" href="?view=practices{% if weekend_only %}&amp;weekend=1{% endif %}">Practices</a>
-      <a class="nav-link {% if event_view == 'all' %}active{% endif %}" href="?view=all{% if weekend_only %}&amp;weekend=1{% endif %}">All</a>
+  <div class="event-filters d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+    <nav class="nav nav-pills event-filter-tabs" aria-label="Event types">
+      <a class="nav-link {% if event_view == 'games' %}active{% endif %}" href="?view=games&amp;range={{ event_range }}{% if request_debug %}&amp;debug=1{% endif %}">Games</a>
+      <a class="nav-link {% if event_view == 'practices' %}active{% endif %}" href="?view=practices&amp;range={{ event_range }}{% if request_debug %}&amp;debug=1{% endif %}">Practices</a>
+      <a class="nav-link {% if event_view == 'all' %}active{% endif %}" href="?view=all&amp;range={{ event_range }}{% if request_debug %}&amp;debug=1{% endif %}">All</a>
     </nav>
-    {% if weekend_only %}
-      <a class="btn btn-sm btn-primary" href="?view={{ event_view }}">✓ Weekend only</a>
-    {% else %}
-      <a class="btn btn-sm btn-outline-secondary" href="?view={{ event_view }}&amp;weekend=1">Weekend only</a>
-    {% endif %}
+    <nav class="nav nav-pills event-filter-tabs" aria-label="Date range">
+      <a class="nav-link {% if event_range == 'week' %}active{% endif %}" href="?view={{ event_view }}&amp;range=week{% if request_debug %}&amp;debug=1{% endif %}">This week</a>
+      <a class="nav-link {% if event_range == 'all' %}active{% endif %}" href="?view={{ event_view }}&amp;range=all{% if request_debug %}&amp;debug=1{% endif %}">All upcoming</a>
+    </nav>
   </div>
   <h2 class="visually-hidden" id="events-heading">Event list</h2>
   {% if events %}
@@ -178,7 +177,7 @@
     <div class="empty-state text-center">
       <div class="empty-state-icon" aria-hidden="true">📅</div>
       <h2 class="h4">No matching upcoming events</h2>
-      <p class="text-body-secondary">Try another event view, turn off the weekend filter, or add a calendar.</p>
+      <p class="text-body-secondary">Try another event type, choose All upcoming, or add a calendar.</p>
     </div>
   {% endif %}
 </section>

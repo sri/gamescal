@@ -1,7 +1,7 @@
 import re
 import secrets
 from datetime import datetime, time, timedelta
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.contrib import messages
@@ -184,11 +184,23 @@ class HomePageView(TemplateView):
         event_view = self.request.GET.get("view", "games")
         if event_view not in {"games", "practices", "all"}:
             event_view = "games"
-        weekend_only = self.request.GET.get("weekend") == "1"
+        event_range = self.request.GET.get("range", "week")
+        if event_range not in {"week", "all"}:
+            event_range = "week"
 
+        now = timezone.now()
         events = CalendarEvent.objects.select_related("calendar").filter(
-            calendar__is_active=True, ends_at__gte=timezone.now()
+            calendar__is_active=True, ends_at__gte=now
         )
+        if event_range == "week":
+            local_timezone = ZoneInfo(settings.TIME_ZONE)
+            local_today = timezone.localtime(now, local_timezone).date()
+            week_start_date = local_today - timedelta(days=local_today.weekday())
+            week_start = datetime.combine(
+                week_start_date, time.min, tzinfo=local_timezone
+            )
+            week_end = week_start + timedelta(days=7)
+            events = events.filter(starts_at__gte=week_start, starts_at__lt=week_end)
         if event_view == "games":
             events = events.filter(
                 event_type__in=[
@@ -200,24 +212,13 @@ class HomePageView(TemplateView):
             events = events.filter(event_type=CalendarEvent.EventType.PRACTICE)
 
         events = list(events.order_by("starts_at", "title")[:2000])
-        if weekend_only:
-            weekend_events = []
-            for event in events:
-                try:
-                    calendar_tz = ZoneInfo(event.calendar.timezone)
-                except ZoneInfoNotFoundError:
-                    calendar_tz = ZoneInfo(settings.TIME_ZONE)
-                if timezone.localtime(event.starts_at, calendar_tz).weekday() >= 5:
-                    weekend_events.append(event)
-            events = weekend_events
-
         events = _annotate_game_gaps(events[:500])
         _annotate_game_directions(events)
         _annotate_travel_times(events)
         context["calendars"] = Calendar.objects.annotate(event_count=Count("events"))
         context["events"] = events
         context["event_view"] = event_view
-        context["weekend_only"] = weekend_only
+        context["event_range"] = event_range
         request_debug = _debug_tools_requested(self.request)
         context["request_debug"] = request_debug
         context["show_demo_tools"] = settings.ENABLE_DEMO_TOOLS or request_debug
