@@ -181,31 +181,36 @@ class HomePageView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        event_view = self.request.GET.get("view", "all")
-        if event_view not in {"games", "practices", "all"}:
-            event_view = "all"
-
         all_event_type = self.request.GET.get("type", "all")
         if all_event_type not in {"all", "games", "practices"}:
             all_event_type = "all"
 
         now = timezone.now()
-        events = CalendarEvent.objects.select_related("calendar").filter(
+        local_timezone = ZoneInfo(settings.TIME_ZONE)
+        local_today = timezone.localtime(now, local_timezone).date()
+        week_start_date = local_today - timedelta(days=local_today.weekday())
+        week_start = datetime.combine(
+            week_start_date, time.min, tzinfo=local_timezone
+        )
+        week_end = week_start + timedelta(days=7)
+        upcoming_events = CalendarEvent.objects.select_related("calendar").filter(
             calendar__is_active=True,
             ends_at__gte=now,
         )
-        if event_view in {"games", "practices"}:
-            local_timezone = ZoneInfo(settings.TIME_ZONE)
-            local_today = timezone.localtime(now, local_timezone).date()
-            week_start_date = local_today - timedelta(days=local_today.weekday())
-            week_start = datetime.combine(
-                week_start_date, time.min, tzinfo=local_timezone
-            )
-            week_end = week_start + timedelta(days=7)
-            events = events.filter(
-                starts_at__gte=week_start,
-                starts_at__lt=week_end,
-            )
+        week_events = upcoming_events.filter(
+            starts_at__gte=week_start,
+            starts_at__lt=week_end,
+        )
+
+        requested_view = self.request.GET.get("view")
+        if requested_view in {"games", "practices", "all"}:
+            event_view = requested_view
+        elif week_events.filter(event_type__in=GAME_EVENT_TYPES).exists():
+            event_view = "games"
+        else:
+            event_view = "practices"
+
+        events = week_events if event_view in {"games", "practices"} else upcoming_events
 
         if event_view == "games" or (
             event_view == "all" and all_event_type == "games"

@@ -311,7 +311,7 @@ class PageTests(TestCase):
                 event_type=event_type,
             )
 
-        all_events = self.client.get(reverse("home"))
+        all_events = self.client.get(reverse("home"), {"view": "all"})
         self.assertEqual(all_events.context["event_view"], "all")
         self.assertContains(all_events, "This week game")
         self.assertContains(all_events, "This week practice")
@@ -326,7 +326,8 @@ class PageTests(TestCase):
         self.assertNotContains(all_events, "All upcoming")
         self.assertNotContains(all_events, "Weekend only")
 
-        games = self.client.get(reverse("home"), {"view": "games"})
+        games = self.client.get(reverse("home"))
+        self.assertEqual(games.context["event_view"], "games")
         self.assertContains(games, "This week game")
         self.assertNotContains(games, "This week practice")
         self.assertNotContains(games, "Next week game")
@@ -356,6 +357,35 @@ class PageTests(TestCase):
         self.assertContains(all_practices, "Next week practice")
         self.assertNotContains(all_practices, "This week game")
         self.assertNotContains(all_practices, "Future team meeting")
+
+    @patch("pages.views.timezone.now", return_value=TEST_NOW)
+    def test_home_defaults_to_practices_when_week_has_no_games(self, _mocked_now):
+        calendar = Calendar.objects.create(
+            name="Practice calendar",
+            cal_url="https://example.com/practice-default.ics",
+            timezone="America/Phoenix",
+        )
+        arizona = ZoneInfo("America/Phoenix")
+        practice_start = datetime(2026, 8, 13, 10, 0, tzinfo=arizona)
+        next_week_game = datetime(2026, 8, 17, 10, 0, tzinfo=arizona)
+        for title, starts_at, event_type in (
+            ("Available practice", practice_start, CalendarEvent.EventType.PRACTICE),
+            ("Later game", next_week_game, CalendarEvent.EventType.GAME),
+        ):
+            CalendarEvent.objects.create(
+                calendar=calendar,
+                external_uid=title,
+                title=title,
+                starts_at=starts_at,
+                ends_at=starts_at + timedelta(hours=1),
+                event_type=event_type,
+            )
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.context["event_view"], "practices")
+        self.assertContains(response, "Available practice")
+        self.assertNotContains(response, "Later game")
 
     @patch("pages.views.timezone.now", return_value=TEST_NOW)
     @patch("pages.views.get_route_estimate")
