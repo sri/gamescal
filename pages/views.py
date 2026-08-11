@@ -185,28 +185,35 @@ class HomePageView(TemplateView):
         if event_view not in {"games", "practices", "all"}:
             event_view = "all"
 
+        all_event_type = self.request.GET.get("type", "all")
+        if all_event_type not in {"all", "games", "practices"}:
+            all_event_type = "all"
+
         now = timezone.now()
-        local_timezone = ZoneInfo(settings.TIME_ZONE)
-        local_today = timezone.localtime(now, local_timezone).date()
-        week_start_date = local_today - timedelta(days=local_today.weekday())
-        week_start = datetime.combine(
-            week_start_date, time.min, tzinfo=local_timezone
-        )
-        week_end = week_start + timedelta(days=7)
         events = CalendarEvent.objects.select_related("calendar").filter(
             calendar__is_active=True,
             ends_at__gte=now,
-            starts_at__gte=week_start,
-            starts_at__lt=week_end,
         )
-        if event_view == "games":
-            events = events.filter(
-                event_type__in=[
-                    CalendarEvent.EventType.GAME,
-                    CalendarEvent.EventType.TOURNAMENT,
-                ]
+        if event_view in {"games", "practices"}:
+            local_timezone = ZoneInfo(settings.TIME_ZONE)
+            local_today = timezone.localtime(now, local_timezone).date()
+            week_start_date = local_today - timedelta(days=local_today.weekday())
+            week_start = datetime.combine(
+                week_start_date, time.min, tzinfo=local_timezone
             )
-        elif event_view == "practices":
+            week_end = week_start + timedelta(days=7)
+            events = events.filter(
+                starts_at__gte=week_start,
+                starts_at__lt=week_end,
+            )
+
+        if event_view == "games" or (
+            event_view == "all" and all_event_type == "games"
+        ):
+            events = events.filter(event_type__in=GAME_EVENT_TYPES)
+        elif event_view == "practices" or (
+            event_view == "all" and all_event_type == "practices"
+        ):
             events = events.filter(event_type=CalendarEvent.EventType.PRACTICE)
 
         events = list(events.order_by("starts_at", "title")[:2000])
@@ -216,6 +223,7 @@ class HomePageView(TemplateView):
         context["calendars"] = Calendar.objects.annotate(event_count=Count("events"))
         context["events"] = events
         context["event_view"] = event_view
+        context["all_event_type"] = all_event_type
         request_debug = _debug_tools_requested(self.request)
         context["request_debug"] = request_debug
         context["show_demo_tools"] = settings.ENABLE_DEMO_TOOLS or request_debug

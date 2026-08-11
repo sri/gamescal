@@ -60,11 +60,26 @@
 </section>
 
 <section aria-labelledby="events-heading">
-  <nav class="nav nav-pills event-filter-tabs mb-3" aria-label="Event types">
-    <a class="nav-link {% if event_view == 'all' %}active{% endif %}" href="?view=all{% if request_debug %}&amp;debug=1{% endif %}">All</a>
-    <a class="nav-link {% if event_view == 'games' %}active{% endif %}" href="?view=games{% if request_debug %}&amp;debug=1{% endif %}">Games</a>
-    <a class="nav-link {% if event_view == 'practices' %}active{% endif %}" href="?view=practices{% if request_debug %}&amp;debug=1{% endif %}">Practices</a>
-  </nav>
+  <div class="event-filters d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
+    <nav class="nav nav-pills event-filter-tabs" aria-label="Event views">
+      <a class="nav-link {% if event_view == 'games' %}active{% endif %}" href="?view=games{% if request_debug %}&amp;debug=1{% endif %}">Games</a>
+      <a class="nav-link {% if event_view == 'practices' %}active{% endif %}" href="?view=practices{% if request_debug %}&amp;debug=1{% endif %}">Practices</a>
+      <a class="nav-link {% if event_view == 'all' %}active{% endif %}" href="?view=all{% if request_debug %}&amp;debug=1{% endif %}">All</a>
+    </nav>
+    {% if event_view == 'all' %}
+      <form class="event-all-filter" method="get">
+        <input type="hidden" name="view" value="all">
+        {% if request_debug %}<input type="hidden" name="debug" value="1">{% endif %}
+        <label class="visually-hidden" for="all-event-type">Filter all events by type</label>
+        <select class="form-select form-select-sm" id="all-event-type" name="type" onchange="this.form.submit()">
+          <option value="all" {% if all_event_type == 'all' %}selected{% endif %}>All</option>
+          <option value="games" {% if all_event_type == 'games' %}selected{% endif %}>Games</option>
+          <option value="practices" {% if all_event_type == 'practices' %}selected{% endif %}>Practices</option>
+        </select>
+        <noscript><button class="btn btn-sm btn-outline-secondary mt-2" type="submit">Apply</button></noscript>
+      </form>
+    {% endif %}
+  </div>
   <h2 class="visually-hidden" id="events-heading">Event list</h2>
   {% if events %}
     <div class="d-none d-md-block table-responsive event-table-wrap">

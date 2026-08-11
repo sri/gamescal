@@ -555,6 +555,10 @@ a {
   padding: 0.35rem 0.85rem;
 }
 
+.event-all-filter {
+  min-width: 10rem;
+}
+
 .api-log-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -716,6 +720,10 @@ a {
   .event-filter-tabs .nav-link {
     flex: 1;
     text-align: center;
+  }
+
+  .event-all-filter {
+    width: 100%;
   }
 
   .calendar-row {

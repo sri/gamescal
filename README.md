@@ -42,8 +42,8 @@ estimate driving time, distance, and the usable buffer between games.
 - **One schedule** — import multiple ICS calendars and see their events together.
 - **Mobile friendly** — compact event cards make dates, times, venues, and teams easy
   to scan on the go.
-- **Useful event views** — show games, practices, or everything together for the
-  current Monday–Sunday week.
+- **Useful event views** — keep Games and Practices focused on the current
+  Monday–Sunday week, or use All to browse every upcoming event with a type filter.
 - **Smart classification** — classify games, practices, tournaments, and other events
   automatically, with custom rules for each calendar.
 - **Directions in one tap** — open a venue in Google Maps, including directions from

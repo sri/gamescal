@@ -291,6 +291,16 @@ class PageTests(TestCase):
                 datetime(2026, 8, 17, 10, 0, tzinfo=arizona),
                 CalendarEvent.EventType.GAME,
             ),
+            (
+                "Next week practice",
+                datetime(2026, 8, 18, 10, 0, tzinfo=arizona),
+                CalendarEvent.EventType.PRACTICE,
+            ),
+            (
+                "Future team meeting",
+                datetime(2026, 8, 19, 10, 0, tzinfo=arizona),
+                CalendarEvent.EventType.OTHER,
+            ),
         ):
             CalendarEvent.objects.create(
                 calendar=calendar,
@@ -306,8 +316,12 @@ class PageTests(TestCase):
         self.assertContains(all_events, "This week game")
         self.assertContains(all_events, "This week practice")
         self.assertContains(all_events, "Sunday practice")
-        self.assertNotContains(all_events, "Next week game")
-        self.assertContains(all_events, 'aria-label="Event types"')
+        self.assertContains(all_events, "Next week game")
+        self.assertContains(all_events, "Next week practice")
+        self.assertContains(all_events, "Future team meeting")
+        self.assertContains(all_events, 'aria-label="Event views"')
+        self.assertContains(all_events, 'id="all-event-type"')
+        self.assertEqual(all_events.context["all_event_type"], "all")
         self.assertNotContains(all_events, "This week</a>")
         self.assertNotContains(all_events, "All upcoming")
         self.assertNotContains(all_events, "Weekend only")
@@ -316,12 +330,32 @@ class PageTests(TestCase):
         self.assertContains(games, "This week game")
         self.assertNotContains(games, "This week practice")
         self.assertNotContains(games, "Next week game")
+        self.assertNotContains(games, 'id="all-event-type"')
 
         practices = self.client.get(reverse("home"), {"view": "practices"})
         self.assertContains(practices, "This week practice")
         self.assertContains(practices, "Sunday practice")
         self.assertNotContains(practices, "This week game")
-        self.assertNotContains(practices, "Next week game")
+        self.assertNotContains(practices, "Next week practice")
+        self.assertNotContains(practices, 'id="all-event-type"')
+
+        all_games = self.client.get(
+            reverse("home"), {"view": "all", "type": "games"}
+        )
+        self.assertEqual(all_games.context["all_event_type"], "games")
+        self.assertContains(all_games, "This week game")
+        self.assertContains(all_games, "Next week game")
+        self.assertNotContains(all_games, "This week practice")
+        self.assertNotContains(all_games, "Future team meeting")
+
+        all_practices = self.client.get(
+            reverse("home"), {"view": "all", "type": "practices"}
+        )
+        self.assertEqual(all_practices.context["all_event_type"], "practices")
+        self.assertContains(all_practices, "This week practice")
+        self.assertContains(all_practices, "Next week practice")
+        self.assertNotContains(all_practices, "This week game")
+        self.assertNotContains(all_practices, "Future team meeting")
 
     @patch("pages.views.timezone.now", return_value=TEST_NOW)
     @patch("pages.views.get_route_estimate")
