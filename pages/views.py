@@ -181,26 +181,24 @@ class HomePageView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        event_view = self.request.GET.get("view", "games")
+        event_view = self.request.GET.get("view", "all")
         if event_view not in {"games", "practices", "all"}:
-            event_view = "games"
-        event_range = self.request.GET.get("range", "week")
-        if event_range not in {"week", "all"}:
-            event_range = "week"
+            event_view = "all"
 
         now = timezone.now()
-        events = CalendarEvent.objects.select_related("calendar").filter(
-            calendar__is_active=True, ends_at__gte=now
+        local_timezone = ZoneInfo(settings.TIME_ZONE)
+        local_today = timezone.localtime(now, local_timezone).date()
+        week_start_date = local_today - timedelta(days=local_today.weekday())
+        week_start = datetime.combine(
+            week_start_date, time.min, tzinfo=local_timezone
         )
-        if event_range == "week":
-            local_timezone = ZoneInfo(settings.TIME_ZONE)
-            local_today = timezone.localtime(now, local_timezone).date()
-            week_start_date = local_today - timedelta(days=local_today.weekday())
-            week_start = datetime.combine(
-                week_start_date, time.min, tzinfo=local_timezone
-            )
-            week_end = week_start + timedelta(days=7)
-            events = events.filter(starts_at__gte=week_start, starts_at__lt=week_end)
+        week_end = week_start + timedelta(days=7)
+        events = CalendarEvent.objects.select_related("calendar").filter(
+            calendar__is_active=True,
+            ends_at__gte=now,
+            starts_at__gte=week_start,
+            starts_at__lt=week_end,
+        )
         if event_view == "games":
             events = events.filter(
                 event_type__in=[
@@ -218,7 +216,6 @@ class HomePageView(TemplateView):
         context["calendars"] = Calendar.objects.annotate(event_count=Count("events"))
         context["events"] = events
         context["event_view"] = event_view
-        context["event_range"] = event_range
         request_debug = _debug_tools_requested(self.request)
         context["request_debug"] = request_debug
         context["show_demo_tools"] = settings.ENABLE_DEMO_TOOLS or request_debug
