@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 from django.contrib.messages import constants as message_constants
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -39,7 +40,21 @@ ALLOWED_HOSTS = [
 # Trust HTTPS information forwarded by the Caddy reverse proxy.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SECURE = not DEBUG
+
+# A password-only gate protects the whole application in production. The
+# password itself is never stored; generate this value with Django's
+# make_password() and keep it in the untracked production environment.
+GAMESCAL_ACCESS_PASSWORD_HASH = os.getenv("GAMESCAL_ACCESS_PASSWORD_HASH", "")
+GAMESCAL_ACCESS_SESSION_AGE = int(
+    os.getenv("GAMESCAL_ACCESS_SESSION_AGE", str(60 * 60 * 24 * 365))
+)
+if not DEBUG and not GAMESCAL_ACCESS_PASSWORD_HASH:
+    raise ImproperlyConfigured(
+        "GAMESCAL_ACCESS_PASSWORD_HASH is required when DJANGO_DEBUG=0."
+    )
 
 
 # Application definition
@@ -70,6 +85,7 @@ MIDDLEWARE = [
     "whitenoise.middleware.WhiteNoiseMiddleware",  # WhiteNoise
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "gamescal.access.SharedAccessMiddleware",
     "debug_toolbar.middleware.DebugToolbarMiddleware",  # Django Debug Toolbar
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",

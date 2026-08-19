@@ -1,0 +1,24 @@
+{% extends '_base.html' %}
+
+{% block title %}Unlock Gamescal{% endblock title %}
+
+{% block content %}
+<section class="access-gate" aria-labelledby="access-heading">
+  <div class="access-card">
+    <h1 class="h3 mb-2" id="access-heading">Gamescal</h1>
+    <p class="text-body-secondary mb-4">Enter the shared password to view the calendar.</p>
+
+    {% if error %}
+      <div class="alert alert-danger" role="alert">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="{% url 'shared_access_login' %}" class="calendar-form">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+      <label class="form-label" for="shared-password">Password</label>
+      <input id="shared-password" name="password" type="password" autocomplete="current-password" required autofocus>
+      <button class="btn btn-primary w-100 mt-3" type="submit">Unlock Gamescal</button>
+    </form>
+  </div>
+</section>
+{% endblock content %}

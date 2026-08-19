@@ -135,8 +135,21 @@ DJANGO_DEBUG=0
 DJANGO_SECRET_KEY=replace-with-a-random-secret
 DJANGO_ALLOWED_HOSTS=g.example.com
 DJANGO_CSRF_TRUSTED_ORIGINS=https://g.example.com
+GAMESCAL_ACCESS_PASSWORD_HASH=django-password-hash
 GEOAPIFY_API_KEY=optional-provider-key
 ```
+
+Generate the shared-access password hash without placing the plaintext password
+in shell history:
+
+```console
+uv run python manage.py shell -c \
+  'from getpass import getpass; from django.contrib.auth.hashers import make_password; print(make_password(getpass("Shared password: ")))'
+```
+
+The password-only gate protects every application route and gives each device a
+one-year session whose expiry rolls forward on use. Changing the configured hash
+invalidates existing sessions.
 
 Gunicorn can serve the application behind an HTTPS reverse proxy such as Caddy.
 Never commit `.env`, API keys, databases, calendar exports, or personal event data.

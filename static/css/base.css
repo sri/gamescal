@@ -752,3 +752,25 @@ a {
 .pricing-header {
   max-width: 700px;
 }
+
+.access-gate {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 2rem 0;
+}
+
+.access-card {
+  width: min(100%, 26rem);
+  padding: 2rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 1rem;
+  background: var(--bs-body-bg);
+  box-shadow: 0 1rem 3rem rgb(0 0 0 / 8%);
+}
+
+.shared-access-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-block: 1rem;
+}
