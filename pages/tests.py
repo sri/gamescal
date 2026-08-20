@@ -15,7 +15,11 @@ from .services import (
     _validate_remote_url,
     parse_calendar,
 )
-from .templatetags.calendar_tags import google_maps_directions, location_hue
+from .templatetags.calendar_tags import (
+    COOL_LOCATION_HUES,
+    google_maps_directions,
+    location_hue,
+)
 
 
 TEST_NOW = datetime(2026, 8, 12, 16, 0, tzinfo=dt_timezone.utc)
@@ -790,6 +794,14 @@ class CalendarParsingTests(TestCase):
             location_hue("Central Stadium, Phoenix AZ"),
             location_hue("North Field, Phoenix AZ"),
         )
+
+    def test_location_colors_use_only_the_cool_palette(self):
+        hues = {location_hue(f"Venue {index}") for index in range(100)}
+
+        self.assertTrue(hues)
+        self.assertTrue(hues.issubset(set(COOL_LOCATION_HUES)))
+        self.assertGreaterEqual(min(hues), 145)
+        self.assertLessEqual(max(hues), 235)
 
     def test_google_maps_directions_url(self):
         self.assertEqual(

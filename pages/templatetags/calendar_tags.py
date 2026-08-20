@@ -8,6 +8,10 @@ from django.utils import timezone
 
 register = template.Library()
 
+# Keep location grouping visually distinct without using pink, magenta, red, or
+# orange. A location's normalized text still selects its color deterministically.
+COOL_LOCATION_HUES = (145, 155, 165, 175, 185, 195, 205, 215, 225, 235)
+
 
 @register.filter
 def in_timezone(value, timezone_name):
@@ -38,4 +42,5 @@ def location_hue(value):
         return 0
     normalized = " ".join(str(value).casefold().split())
     digest = hashlib.sha256(normalized.encode()).digest()
-    return int.from_bytes(digest[:2], "big") % 360
+    palette_index = int.from_bytes(digest[:2], "big") % len(COOL_LOCATION_HUES)
+    return COOL_LOCATION_HUES[palette_index]
