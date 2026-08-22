@@ -567,6 +567,27 @@ def _redirect_after_calendar_action(request, calendar):
     return redirect("home")
 
 
+def _replace_calendar_events(calendar, result):
+    """Replace a calendar's stored events with a freshly downloaded snapshot."""
+    with transaction.atomic():
+        rules = list(calendar.event_rules.filter(is_active=True))
+        calendar.events.all().delete()
+        CalendarEvent.objects.bulk_create(
+            [_event_model(calendar, event, rules) for event in result.events]
+        )
+        calendar.timezone = result.timezone
+        calendar.last_synced_at = timezone.now()
+        calendar.last_sync_error = ""
+        calendar.save(
+            update_fields=[
+                "timezone",
+                "last_synced_at",
+                "last_sync_error",
+                "updated_at",
+            ]
+        )
+
+
 @require_POST
 def refresh_calendar(request, pk):
     calendar = get_object_or_404(Calendar, pk=pk)
@@ -577,28 +598,51 @@ def refresh_calendar(request, pk):
         calendar.save(update_fields=["last_sync_error", "updated_at"])
         messages.error(request, f'Could not refresh “{calendar.name}”: {exc}')
     else:
-        with transaction.atomic():
-            rules = list(calendar.event_rules.filter(is_active=True))
-            calendar.events.all().delete()
-            CalendarEvent.objects.bulk_create(
-                [_event_model(calendar, event, rules) for event in result.events]
-            )
-            calendar.timezone = result.timezone
-            calendar.last_synced_at = timezone.now()
-            calendar.last_sync_error = ""
-            calendar.save(
-                update_fields=[
-                    "timezone",
-                    "last_synced_at",
-                    "last_sync_error",
-                    "updated_at",
-                ]
-            )
+        _replace_calendar_events(calendar, result)
         messages.success(
             request,
-            f'Refreshed “{calendar.name}” with {len(result.events)} events.',
+            f'Replaced all events in “{calendar.name}” with '
+            f"{len(result.events)} fresh events.",
         )
     return _redirect_after_calendar_action(request, calendar)
+
+
+@require_POST
+def refresh_all_calendars(request):
+    calendars = list(Calendar.objects.all())
+    if not calendars:
+        messages.info(request, "There are no calendars to refresh.")
+        return redirect("home")
+
+    refreshed = 0
+    imported_events = 0
+    failed_names = []
+    for calendar in calendars:
+        try:
+            result = fetch_and_parse_calendar(calendar.cal_url)
+        except CalendarImportError as exc:
+            calendar.last_sync_error = str(exc)
+            calendar.save(update_fields=["last_sync_error", "updated_at"])
+            failed_names.append(calendar.name)
+            continue
+
+        _replace_calendar_events(calendar, result)
+        refreshed += 1
+        imported_events += len(result.events)
+
+    if refreshed:
+        messages.success(
+            request,
+            f"Replaced all events in {refreshed} calendar(s) with "
+            f"{imported_events} fresh events.",
+        )
+    if failed_names:
+        messages.error(
+            request,
+            "Kept the existing events for calendars that could not be refreshed: "
+            + ", ".join(failed_names),
+        )
+    return redirect("home")
 
 
 @require_POST

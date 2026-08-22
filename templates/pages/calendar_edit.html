@@ -94,11 +94,12 @@
         <div class="card-body p-4">
           <h2 class="h5 mb-3">Actions</h2>
           <div class="d-grid gap-2">
-            <form method="post" action="{% url 'calendar_refresh' calendar.pk %}" class="d-grid">
+            <form method="post" action="{% url 'calendar_refresh' calendar.pk %}" class="d-grid" onsubmit="return confirm('Delete all stored events for {{ calendar.name|escapejs }} and replace them with fresh events from its feed? If the feed cannot be downloaded, the existing events will be kept.')">
               {% csrf_token %}
               <input type="hidden" name="next" value="edit">
-              <button class="btn btn-outline-primary" type="submit">Refresh Events</button>
+              <button class="btn btn-outline-primary" type="submit">Replace All Events</button>
             </form>
+            <p class="small text-body-secondary mb-1">Downloads the latest feed, then removes every stored event and imports the feed again. Classification rules are preserved.</p>
             <form method="post" action="{% url 'calendar_toggle' calendar.pk %}" class="d-grid">
               {% csrf_token %}
               <input type="hidden" name="next" value="edit">

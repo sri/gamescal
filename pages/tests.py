@@ -597,6 +597,68 @@ class PageTests(TestCase):
         refreshed_event = calendar.events.get(title="Falcons vs Bears")
         self.assertEqual(refreshed_event.event_type, CalendarEvent.EventType.PRACTICE)
 
+    @patch("pages.views.fetch_and_parse_calendar")
+    def test_refresh_all_replaces_events_in_every_calendar(self, fetch):
+        calendars = [
+            Calendar.objects.create(
+                name=name, cal_url=f"https://example.com/{name.casefold()}.ics"
+            )
+            for name in ("Alpha", "Beta")
+        ]
+        for calendar in calendars:
+            CalendarEvent.objects.create(
+                calendar=calendar,
+                external_uid="old",
+                title=f"Old {calendar.name} event",
+                starts_at=timezone.now(),
+                ends_at=timezone.now() + timedelta(hours=1),
+            )
+        fetch.side_effect = [self.sample_result(), self.sample_result()]
+
+        response = self.client.post(reverse("calendars_refresh_all"))
+
+        self.assertRedirects(response, reverse("home"))
+        self.assertEqual(fetch.call_count, 2)
+        for calendar in calendars:
+            self.assertEqual(calendar.events.count(), 1)
+            self.assertEqual(calendar.events.get().title, "Falcons vs Bears")
+
+    @patch("pages.views.fetch_and_parse_calendar")
+    def test_refresh_all_keeps_old_events_when_a_feed_fails(self, fetch):
+        failed = Calendar.objects.create(
+            name="Broken", cal_url="https://example.com/broken.ics"
+        )
+        working = Calendar.objects.create(
+            name="Working", cal_url="https://example.com/working.ics"
+        )
+        for calendar in (failed, working):
+            CalendarEvent.objects.create(
+                calendar=calendar,
+                external_uid="old",
+                title=f"Old {calendar.name} event",
+                starts_at=timezone.now(),
+                ends_at=timezone.now() + timedelta(hours=1),
+            )
+        fetch.side_effect = [
+            CalendarImportError("Feed unavailable."),
+            self.sample_result(),
+        ]
+
+        response = self.client.post(reverse("calendars_refresh_all"), follow=True)
+
+        self.assertRedirects(response, reverse("home"))
+        self.assertTrue(failed.events.filter(title="Old Broken event").exists())
+        self.assertEqual(failed.events.count(), 1)
+        self.assertTrue(working.events.filter(title="Falcons vs Bears").exists())
+        failed.refresh_from_db()
+        self.assertEqual(failed.last_sync_error, "Feed unavailable.")
+        self.assertContains(response, "Kept the existing events")
+
+    def test_refresh_all_requires_post(self):
+        response = self.client.get(reverse("calendars_refresh_all"))
+
+        self.assertEqual(response.status_code, 405)
+
     def test_calendar_rule_creation_reclassifies_existing_events(self):
         calendar = Calendar.objects.create(
             name="League", cal_url="https://example.com/rules.ics"
@@ -677,6 +739,8 @@ class PageTests(TestCase):
         self.assertContains(
             response, reverse("calendar_edit", kwargs={"pk": calendar.pk})
         )
+        self.assertContains(response, "Refresh All Events")
+        self.assertContains(response, reverse("calendars_refresh_all"))
 
     def test_calendar_edit_shows_information_and_event_counts(self):
         calendar = Calendar.objects.create(
@@ -704,7 +768,8 @@ class PageTests(TestCase):
         self.assertEqual(response.context["event_counts"]["games"], 1)
         self.assertEqual(response.context["event_counts"]["practices"], 1)
         self.assertContains(response, "Delete Calendar")
-        self.assertContains(response, "Refresh Events")
+        self.assertContains(response, "Replace All Events")
+        self.assertContains(response, "Classification rules are preserved.")
         self.assertContains(response, "Manage Classification Rules")
 
     def test_calendar_edit_updates_details(self):

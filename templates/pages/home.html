@@ -48,6 +48,12 @@
       <a class="btn btn-primary" href="{% url 'calendar_add' %}">
         <span aria-hidden="true">＋</span> Add Calendar
       </a>
+      {% if calendars %}
+        <form method="post" action="{% url 'calendars_refresh_all' %}" onsubmit="return confirm('Delete every stored event and replace them with fresh events from all calendar feeds? Calendars that fail to download will keep their existing events.')">
+          {% csrf_token %}
+          <button class="btn btn-outline-primary" type="submit">Refresh All Events</button>
+        </form>
+      {% endif %}
       {% if show_api_logs %}<a class="btn btn-outline-secondary" href="{% url 'geoapify_api_logs' %}{% if request_debug %}?debug=1{% endif %}">API Logs</a>{% endif %}
       {% if show_demo_tools %}
         <form method="post" action="{% url 'calendar_demo_populate' %}{% if request_debug %}?debug=1{% endif %}" onsubmit="return confirm('Replace the Travel Time Demo calendar with fresh scenarios?')">

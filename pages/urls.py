@@ -14,6 +14,7 @@ from .views import (
     edit_calendar_rule,
     geoapify_api_logs,
     populate_demo_calendar,
+    refresh_all_calendars,
     refresh_calendar,
     toggle_calendar,
     toggle_calendar_rule,
@@ -29,6 +30,11 @@ urlpatterns = [
         name="geoapify_api_logs_clear",
     ),
     path("calendars/add/", add_calendar, name="calendar_add"),
+    path(
+        "calendars/refresh-all/",
+        refresh_all_calendars,
+        name="calendars_refresh_all",
+    ),
     path(
         "calendars/demo/populate/",
         populate_demo_calendar,
