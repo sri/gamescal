@@ -119,8 +119,8 @@
   {% if active_calendars and event_view != 'practices' %}
     <div class="event-source-filters mb-3">
       <nav class="nav nav-pills event-scope-tabs" aria-label="Calendar ownership">
-        <a class="nav-link {% if event_scope == 'all' %}active{% endif %}" href="{{ event_scope_urls.all }}">All</a>
         <a class="nav-link {% if event_scope == 'mine' %}active{% endif %}" href="{{ event_scope_urls.mine }}">Mine</a>
+        <a class="nav-link {% if event_scope == 'all' %}active{% endif %}" href="{{ event_scope_urls.all }}">All</a>
         <a class="nav-link {% if event_scope == 'others' %}active{% endif %}" href="{{ event_scope_urls.others }}">Others</a>
       </nav>
     </div>

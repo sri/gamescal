@@ -225,6 +225,7 @@ class PageTests(TestCase):
             name="Active",
             cal_url="https://active.test/a.ics",
             website_url="https://active.test/schedule",
+            is_mine=True,
         )
         inactive = Calendar.objects.create(
             name="Inactive", cal_url="https://inactive.test/a.ics", is_active=False
@@ -237,6 +238,7 @@ class PageTests(TestCase):
                 starts_at=timezone.now() + timedelta(days=1),
                 ends_at=timezone.now() + timedelta(days=1, hours=1),
                 event_type=CalendarEvent.EventType.GAME,
+                is_mine=calendar.is_mine,
             )
 
         response = self.client.get(reverse("home"))
@@ -274,14 +276,18 @@ class PageTests(TestCase):
                 is_mine=is_mine,
             )
 
-        mine_only = self.client.get(
-            reverse("home"), {"view": "games", "scope": "mine"}
-        )
+        mine_only = self.client.get(reverse("home"), {"view": "games"})
+        self.assertEqual(mine_only.context["event_scope"], "mine")
         self.assertContains(mine_only, "My game")
         self.assertNotContains(mine_only, "Other game")
         self.assertContains(mine_only, 'aria-label="Calendar ownership"')
         self.assertNotContains(mine_only, "Apply Calendars")
         self.assertNotContains(mine_only, "Select All")
+        scope_filters = mine_only.content.decode().split(
+            'aria-label="Calendar ownership"', 1
+        )[1][:600]
+        self.assertLess(scope_filters.index(">Mine</a>"), scope_filters.index(">All</a>"))
+        self.assertLess(scope_filters.index(">All</a>"), scope_filters.index(">Others</a>"))
 
         others_only = self.client.get(
             reverse("home"), {"view": "all", "scope": "others"}
@@ -298,7 +304,9 @@ class PageTests(TestCase):
     @patch("pages.views.timezone.now", return_value=TEST_NOW)
     def test_event_calendar_link_falls_back_to_feed_url(self, _mocked_now):
         calendar = Calendar.objects.create(
-            name="Feed only", cal_url="https://example.com/fallback.ics"
+            name="Feed only",
+            cal_url="https://example.com/fallback.ics",
+            is_mine=True,
         )
         CalendarEvent.objects.create(
             calendar=calendar,
@@ -307,6 +315,7 @@ class PageTests(TestCase):
             starts_at=timezone.now() + timedelta(days=1),
             ends_at=timezone.now() + timedelta(days=1, minutes=50),
             event_type=CalendarEvent.EventType.GAME,
+            is_mine=True,
         )
 
         response = self.client.get(reverse("home"))
@@ -324,6 +333,7 @@ class PageTests(TestCase):
             name="League",
             cal_url="https://example.com/views.ics",
             timezone="America/Phoenix",
+            is_mine=True,
         )
         arizona = ZoneInfo("America/Phoenix")
         for title, starts_at, event_type in (
@@ -365,6 +375,7 @@ class PageTests(TestCase):
                 starts_at=starts_at,
                 ends_at=starts_at + timedelta(hours=1),
                 event_type=event_type,
+                is_mine=True,
             )
 
         all_events = self.client.get(reverse("home"), {"view": "all"})
@@ -483,7 +494,9 @@ class PageTests(TestCase):
                 address=location,
             )
 
-        response = self.client.get(reverse("home"), {"view": "games"})
+        response = self.client.get(
+            reverse("home"), {"view": "games", "scope": "all"}
+        )
         events = list(response.context["events"])
 
         self.assertEqual(events[0].game_gap_after, "")
@@ -568,7 +581,9 @@ class PageTests(TestCase):
                 address=location,
             )
 
-        response = self.client.get(reverse("home"), {"view": "games"})
+        response = self.client.get(
+            reverse("home"), {"view": "games", "scope": "all"}
+        )
         events = list(response.context["events"])
 
         self.assertEqual(events[0].game_gap_after, "")
@@ -602,7 +617,9 @@ class PageTests(TestCase):
                 address=location,
             )
 
-        response = self.client.get(reverse("home"), {"view": "all"})
+        response = self.client.get(
+            reverse("home"), {"view": "all", "scope": "all"}
+        )
         events = {event.title: event for event in response.context["events"]}
 
         self.assertEqual(events["Same venue"].directions_origin, "")
