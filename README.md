@@ -50,9 +50,11 @@ estimate driving time, distance, and the usable buffer between games.
   the previous game when the location changes.
 - **Travel estimates** — use Geoapify to estimate drive time, distance, and the buffer
   available between same-day games.
-- **Calendar management** — preview before importing, replace one or every calendar’s
-  stored events from fresh feeds, disable calendars, edit classification rules, and
-  inspect calendar statistics.
+- **Calendar management** — preview before importing, replace a calendar’s stored
+  events from a fresh feed, disable calendars, edit classification rules, and inspect
+  calendar statistics.
+- **Saved links** — keep useful schedule URLs alongside the calendar list, with inline
+  add, edit, open, and delete controls.
 - **Recurring events** — expand recurring ICS events into individual schedule entries.
 - **Efficient API usage** — cache successful route estimates for 30 days and limit new
   route requests per page load.

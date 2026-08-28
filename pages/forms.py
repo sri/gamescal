@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Calendar, CalendarEventRule
+from .models import Calendar, CalendarEventRule, SavedLink
 
 
 class CalendarImportForm(forms.Form):
@@ -43,6 +43,22 @@ class CalendarEditForm(forms.ModelForm):
         widgets = {
             "cal_url": forms.URLInput(attrs={"autocomplete": "url"}),
             "website_url": forms.URLInput(attrs={"autocomplete": "url"}),
+        }
+
+
+class SavedLinkForm(forms.ModelForm):
+    class Meta:
+        model = SavedLink
+        fields = ("url",)
+        widgets = {
+            "url": forms.URLInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "https://example.com/schedule",
+                    "autocomplete": "url",
+                    "aria-label": "URL",
+                }
+            )
         }
 
 

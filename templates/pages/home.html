@@ -5,14 +5,14 @@
 
 {% block content %}
 <section class="my-4" aria-labelledby="calendars-heading">
-  <button class="calendar-collapse-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#calendarsCollapse" aria-expanded="false" aria-controls="calendarsCollapse">
+  <button class="calendar-collapse-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#calendarsCollapse" aria-expanded="{% if calendars_expanded %}true{% else %}false{% endif %}" aria-controls="calendarsCollapse">
     <span>
       <span class="h5 mb-0" id="calendars-heading">Calendars</span>
       <span class="text-body-secondary small ms-2">{{ calendars|length }} configured</span>
     </span>
     <span class="calendar-collapse-chevron" aria-hidden="true">⌄</span>
   </button>
-  <div class="collapse" id="calendarsCollapse">
+  <div class="collapse{% if calendars_expanded %} show{% endif %}" id="calendarsCollapse">
     {% if calendars %}
     <div class="calendar-list mt-2">
       {% for calendar in calendars %}
@@ -44,16 +44,40 @@
     {% else %}
       <p class="text-body-secondary mt-3 mb-0">No calendars configured yet.</p>
     {% endif %}
+
+    <div class="saved-links mt-3">
+      <div class="small fw-semibold text-uppercase text-body-secondary mb-2">Links</div>
+      {% for link in saved_links %}
+        <div class="saved-link-row">
+          <a class="saved-link-url" href="{{ link.url }}" target="_blank" rel="noopener">{{ link.url }} <span aria-hidden="true">↗</span></a>
+          <details class="saved-link-edit">
+            <summary>Edit</summary>
+            <form method="post" action="{% url 'saved_link_edit' link.pk %}" class="saved-link-edit-form">
+              {% csrf_token %}
+              <label class="visually-hidden" for="saved-link-{{ link.pk }}">Edit URL</label>
+              <input class="form-control form-control-sm" id="saved-link-{{ link.pk }}" name="url" type="url" value="{{ link.url }}" maxlength="2000" required>
+              <button class="btn btn-sm btn-primary" type="submit">Save</button>
+            </form>
+          </details>
+          <form method="post" action="{% url 'saved_link_delete' link.pk %}" onsubmit="return confirm('Delete this saved URL?')">
+            {% csrf_token %}
+            <button class="btn btn-sm btn-link text-danger p-0" type="submit">Delete</button>
+          </form>
+        </div>
+      {% empty %}
+        <p class="small text-body-secondary mb-2">No saved URLs.</p>
+      {% endfor %}
+      <form method="post" action="{% url 'saved_link_add' %}" class="saved-link-add-form">
+        {% csrf_token %}
+        {{ saved_link_form.url }}
+        <button class="btn btn-outline-primary text-nowrap" type="submit">Add URL</button>
+      </form>
+    </div>
+
     <div class="calendar-collapse-actions d-flex gap-2 flex-wrap mt-3">
       <a class="btn btn-primary" href="{% url 'calendar_add' %}">
         <span aria-hidden="true">＋</span> Add Calendar
       </a>
-      {% if calendars %}
-        <form method="post" action="{% url 'calendars_refresh_all' %}" onsubmit="return confirm('Delete every stored event and replace them with fresh events from all calendar feeds? Calendars that fail to download will keep their existing events.')">
-          {% csrf_token %}
-          <button class="btn btn-outline-primary" type="submit">Refresh All Events</button>
-        </form>
-      {% endif %}
       {% if show_api_logs %}<a class="btn btn-outline-secondary" href="{% url 'geoapify_api_logs' %}{% if request_debug %}?debug=1{% endif %}">API Logs</a>{% endif %}
       {% if show_demo_tools %}
         <form method="post" action="{% url 'calendar_demo_populate' %}{% if request_debug %}?debug=1{% endif %}" onsubmit="return confirm('Replace the Travel Time Demo calendar with fresh scenarios?')">

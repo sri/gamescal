@@ -124,6 +124,65 @@ a {
   gap: 0.5rem;
 }
 
+.saved-links {
+  padding: 1rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.75rem;
+  background: var(--bs-tertiary-bg);
+}
+
+.saved-link-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+.saved-link-url {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.saved-link-edit {
+  position: relative;
+}
+
+.saved-link-edit summary {
+  color: var(--bs-primary);
+  cursor: pointer;
+  font-size: 0.875rem;
+  list-style: none;
+}
+
+.saved-link-edit summary::-webkit-details-marker {
+  display: none;
+}
+
+.saved-link-edit-form {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  display: flex;
+  width: min(32rem, 80vw);
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 12%);
+  background: var(--bs-body-bg);
+}
+
+.saved-link-add-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
 .calendar-stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

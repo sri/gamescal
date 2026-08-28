@@ -7,7 +7,13 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import Calendar, CalendarEvent, CalendarEventRule, GeoapifyAPILog
+from .models import (
+    Calendar,
+    CalendarEvent,
+    CalendarEventRule,
+    GeoapifyAPILog,
+    SavedLink,
+)
 from .services import (
     CalendarImportError,
     EventData,
@@ -787,8 +793,68 @@ class PageTests(TestCase):
         self.assertContains(
             response, reverse("calendar_edit", kwargs={"pk": calendar.pk})
         )
-        self.assertContains(response, "Refresh All Events")
-        self.assertContains(response, reverse("calendars_refresh_all"))
+        self.assertNotContains(response, "Refresh All Events")
+        self.assertNotContains(response, reverse("calendars_refresh_all"))
+        self.assertContains(response, "Add URL")
+
+    def test_saved_urls_can_be_added_opened_edited_and_deleted_inline(self):
+        add = self.client.post(
+            reverse("saved_link_add"),
+            {"url": "https://example.com/team-schedule"},
+        )
+
+        self.assertRedirects(
+            add,
+            f'{reverse("home")}?calendars=open#calendarsCollapse',
+            fetch_redirect_response=False,
+        )
+        link = SavedLink.objects.get()
+
+        home = self.client.get(reverse("home"), {"calendars": "open"})
+        self.assertContains(home, 'class="collapse show" id="calendarsCollapse"')
+        self.assertContains(
+            home,
+            'href="https://example.com/team-schedule" target="_blank"',
+        )
+        self.assertContains(
+            home, reverse("saved_link_edit", kwargs={"pk": link.pk})
+        )
+        self.assertContains(
+            home, reverse("saved_link_delete", kwargs={"pk": link.pk})
+        )
+
+        edit = self.client.post(
+            reverse("saved_link_edit", kwargs={"pk": link.pk}),
+            {"url": "https://example.com/updated-schedule"},
+        )
+
+        self.assertEqual(edit.status_code, 302)
+        link.refresh_from_db()
+        self.assertEqual(link.url, "https://example.com/updated-schedule")
+
+        delete = self.client.post(
+            reverse("saved_link_delete", kwargs={"pk": link.pk})
+        )
+
+        self.assertEqual(delete.status_code, 302)
+        self.assertFalse(SavedLink.objects.exists())
+
+    def test_saved_url_actions_require_post(self):
+        link = SavedLink.objects.create(url="https://example.com/schedule")
+
+        self.assertEqual(self.client.get(reverse("saved_link_add")).status_code, 405)
+        self.assertEqual(
+            self.client.get(
+                reverse("saved_link_edit", kwargs={"pk": link.pk})
+            ).status_code,
+            405,
+        )
+        self.assertEqual(
+            self.client.get(
+                reverse("saved_link_delete", kwargs={"pk": link.pk})
+            ).status_code,
+            405,
+        )
 
     def test_calendar_edit_shows_information_and_event_counts(self):
         calendar = Calendar.objects.create(

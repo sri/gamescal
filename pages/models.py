@@ -22,6 +22,18 @@ class Calendar(models.Model):
         return self.name
 
 
+class SavedLink(models.Model):
+    url = models.URLField(max_length=2000, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["url"]
+
+    def __str__(self):
+        return self.url
+
+
 class CalendarEvent(models.Model):
     class Status(models.TextChoices):
         CONFIRMED = "confirmed", "Confirmed"

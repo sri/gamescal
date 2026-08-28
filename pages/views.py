@@ -15,8 +15,19 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView
 
-from .forms import CalendarEditForm, CalendarEventRuleForm, CalendarImportForm
-from .models import Calendar, CalendarEvent, CalendarEventRule, GeoapifyAPILog
+from .forms import (
+    CalendarEditForm,
+    CalendarEventRuleForm,
+    CalendarImportForm,
+    SavedLinkForm,
+)
+from .models import (
+    Calendar,
+    CalendarEvent,
+    CalendarEventRule,
+    GeoapifyAPILog,
+    SavedLink,
+)
 from .services import (
     CalendarImportError,
     ImportResult,
@@ -226,6 +237,11 @@ class HomePageView(TemplateView):
         _annotate_game_directions(events)
         _annotate_travel_times(events)
         context["calendars"] = Calendar.objects.annotate(event_count=Count("events"))
+        context["saved_links"] = SavedLink.objects.all()
+        context["saved_link_form"] = SavedLinkForm()
+        context["calendars_expanded"] = (
+            self.request.GET.get("calendars") == "open"
+        )
         context["events"] = events
         context["event_view"] = event_view
         context["all_event_type"] = all_event_type
@@ -238,6 +254,45 @@ class HomePageView(TemplateView):
 
 class AboutPageView(TemplateView):
     template_name = "pages/about.html"
+
+
+def _saved_links_redirect():
+    return redirect(f'{reverse("home")}?calendars=open#calendarsCollapse')
+
+
+def _saved_link_errors(form):
+    return " ".join(str(error) for errors in form.errors.values() for error in errors)
+
+
+@require_POST
+def add_saved_link(request):
+    form = SavedLinkForm(request.POST)
+    if form.is_valid():
+        form.save()
+        messages.success(request, "Added the URL.")
+    else:
+        messages.error(request, _saved_link_errors(form))
+    return _saved_links_redirect()
+
+
+@require_POST
+def edit_saved_link(request, pk):
+    link = get_object_or_404(SavedLink, pk=pk)
+    form = SavedLinkForm(request.POST, instance=link)
+    if form.is_valid():
+        form.save()
+        messages.success(request, "Updated the URL.")
+    else:
+        messages.error(request, _saved_link_errors(form))
+    return _saved_links_redirect()
+
+
+@require_POST
+def delete_saved_link(request, pk):
+    link = get_object_or_404(SavedLink, pk=pk)
+    link.delete()
+    messages.success(request, "Deleted the URL.")
+    return _saved_links_redirect()
 
 
 def geoapify_api_logs(request):
