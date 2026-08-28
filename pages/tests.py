@@ -253,7 +253,7 @@ class PageTests(TestCase):
         self.assertNotContains(response, "Hidden game")
 
     @patch("pages.views.timezone.now", return_value=TEST_NOW)
-    def test_games_and_all_can_filter_by_ownership(self, _mocked_now):
+    def test_all_event_views_can_filter_by_calendar_ownership(self, _mocked_now):
         mine = Calendar.objects.create(
             name="Coach schedule",
             cal_url="https://example.com/coach.ics",
@@ -265,9 +265,11 @@ class PageTests(TestCase):
         )
         # Ownership filtering follows the calendar, not a team-name match stored
         # on an individual event.
-        for calendar, title, is_mine in (
-            (mine, "My game", False),
-            (other, "Other game", True),
+        for calendar, title, event_type, is_mine in (
+            (mine, "My game", CalendarEvent.EventType.GAME, False),
+            (other, "Other game", CalendarEvent.EventType.GAME, True),
+            (mine, "My practice", CalendarEvent.EventType.PRACTICE, False),
+            (other, "Other practice", CalendarEvent.EventType.PRACTICE, True),
         ):
             CalendarEvent.objects.create(
                 calendar=calendar,
@@ -275,7 +277,7 @@ class PageTests(TestCase):
                 title=title,
                 starts_at=TEST_NOW + timedelta(days=1),
                 ends_at=TEST_NOW + timedelta(days=1, hours=1),
-                event_type=CalendarEvent.EventType.GAME,
+                event_type=event_type,
                 is_mine=is_mine,
             )
 
@@ -305,6 +307,19 @@ class PageTests(TestCase):
         self.assertContains(all_games, "Other game")
         self.assertContains(all_games, '<tr class="event-external-calendar">')
         self.assertContains(all_games, "mobile-event-external-calendar")
+
+        mine_practices = self.client.get(
+            reverse("home"), {"view": "practices", "scope": "mine"}
+        )
+        self.assertContains(mine_practices, "My practice")
+        self.assertNotContains(mine_practices, "Other practice")
+        self.assertContains(mine_practices, 'aria-label="Calendar ownership"')
+
+        other_practices = self.client.get(
+            reverse("home"), {"view": "practices", "scope": "others"}
+        )
+        self.assertNotContains(other_practices, "My practice")
+        self.assertContains(other_practices, "Other practice")
 
     @patch("pages.views.timezone.now", return_value=TEST_NOW)
     def test_event_calendar_link_falls_back_to_feed_url(self, _mocked_now):
@@ -436,6 +451,7 @@ class PageTests(TestCase):
             name="Practice calendar",
             cal_url="https://example.com/practice-default.ics",
             timezone="America/Phoenix",
+            is_mine=True,
         )
         arizona = ZoneInfo("America/Phoenix")
         practice_start = datetime(2026, 8, 13, 10, 0, tzinfo=arizona)

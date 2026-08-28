@@ -340,11 +340,10 @@ class HomePageView(TemplateView):
 
         events = week_events if event_view in {"games", "practices"} else upcoming_events
 
-        if event_view in {"games", "all"}:
-            if event_scope == "mine":
-                events = events.filter(calendar__is_mine=True)
-            elif event_scope == "others":
-                events = events.filter(calendar__is_mine=False)
+        if event_scope == "mine":
+            events = events.filter(calendar__is_mine=True)
+        elif event_scope == "others":
+            events = events.filter(calendar__is_mine=False)
 
         if event_view == "games" or (
             event_view == "all" and all_event_type == "games"
