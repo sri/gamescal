@@ -43,8 +43,7 @@ estimate driving time, distance, and the usable buffer between games.
 - **Mobile friendly** — compact event cards make dates, times, venues, and teams easy
   to scan on the go.
 - **Useful event views** — keep Games and Practices within the current Monday–Sunday
-  week, filter Games and All by ownership or any combination of active calendars, and
-  use All to browse every upcoming event.
+  week, filter Games and All by ownership, and use All to browse every upcoming event.
 - **Smart classification** — classify games, practices, tournaments, and other events
   automatically, with custom rules for each calendar.
 - **Schedule cross-checking** — match your team in official league feeds and flag time

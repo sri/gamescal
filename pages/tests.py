@@ -250,9 +250,7 @@ class PageTests(TestCase):
         self.assertNotContains(response, "Hidden game")
 
     @patch("pages.views.timezone.now", return_value=TEST_NOW)
-    def test_games_and_all_can_filter_by_ownership_and_active_calendars(
-        self, _mocked_now
-    ):
+    def test_games_and_all_can_filter_by_ownership(self, _mocked_now):
         mine = Calendar.objects.create(
             name="Coach schedule",
             cal_url="https://example.com/coach.ics",
@@ -281,8 +279,9 @@ class PageTests(TestCase):
         )
         self.assertContains(mine_only, "My game")
         self.assertNotContains(mine_only, "Other game")
-        self.assertContains(mine_only, "Apply Calendars")
-        self.assertContains(mine_only, "Coach schedule · Mine")
+        self.assertContains(mine_only, 'aria-label="Calendar ownership"')
+        self.assertNotContains(mine_only, "Apply Calendars")
+        self.assertNotContains(mine_only, "Select All")
 
         others_only = self.client.get(
             reverse("home"), {"view": "all", "scope": "others"}
@@ -290,20 +289,11 @@ class PageTests(TestCase):
         self.assertNotContains(others_only, "My game")
         self.assertContains(others_only, "Other game")
 
-        selected_league = self.client.get(
-            reverse("home"),
-            {
-                "view": "games",
-                "scope": "all",
-                "calendar_filter": "1",
-                "calendar": str(other.pk),
-            },
+        all_games = self.client.get(
+            reverse("home"), {"view": "games", "scope": "all"}
         )
-        self.assertNotContains(selected_league, "My game")
-        self.assertContains(selected_league, "Other game")
-        self.assertEqual(
-            selected_league.context["selected_calendar_ids"], {other.pk}
-        )
+        self.assertContains(all_games, "My game")
+        self.assertContains(all_games, "Other game")
 
     @patch("pages.views.timezone.now", return_value=TEST_NOW)
     def test_event_calendar_link_falls_back_to_feed_url(self, _mocked_now):

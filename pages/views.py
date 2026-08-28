@@ -298,20 +298,6 @@ class HomePageView(TemplateView):
             Calendar.objects.annotate(event_count=Count("events")).order_by("name")
         )
         active_calendars = [calendar for calendar in calendars if calendar.is_active]
-        active_calendar_ids = {calendar.pk for calendar in active_calendars}
-        if self.request.GET.get("calendar_filter") == "1":
-            selected_calendar_ids = {
-                int(value)
-                for value in self.request.GET.getlist("calendar")
-                if value.isdigit() and int(value) in active_calendar_ids
-            }
-        else:
-            selected_calendar_ids = active_calendar_ids
-        selected_calendars = [
-            calendar
-            for calendar in active_calendars
-            if calendar.pk in selected_calendar_ids
-        ]
 
         event_scope = self.request.GET.get("scope", "all")
         if event_scope not in {"all", "mine", "others"}:
@@ -327,7 +313,6 @@ class HomePageView(TemplateView):
         week_end = week_start + timedelta(days=7)
         upcoming_events = CalendarEvent.objects.select_related("calendar").filter(
             calendar__is_active=True,
-            calendar_id__in=selected_calendar_ids,
             ends_at__gte=now,
         )
         week_events = upcoming_events.filter(
@@ -366,16 +351,8 @@ class HomePageView(TemplateView):
         _annotate_game_directions(events)
         _annotate_travel_times(events)
 
-        def event_filter_url(
-            view, *, scope=event_scope, event_type=None, calendars_override=None
-        ):
-            params = [("view", view), ("scope", scope), ("calendar_filter", "1")]
-            url_calendars = (
-                selected_calendars
-                if calendars_override is None
-                else calendars_override
-            )
-            params.extend(("calendar", calendar.pk) for calendar in url_calendars)
+        def event_filter_url(view, *, scope=event_scope, event_type=None):
+            params = [("view", view), ("scope", scope)]
             if view == "all":
                 params.append(("type", event_type or all_event_type))
             if _debug_tools_requested(self.request):
@@ -384,8 +361,6 @@ class HomePageView(TemplateView):
 
         context["calendars"] = calendars
         context["active_calendars"] = active_calendars
-        context["selected_calendar_ids"] = selected_calendar_ids
-        context["selected_calendars"] = selected_calendars
         context["event_scope"] = event_scope
         context["event_view_urls"] = {
             view: event_filter_url(view) for view in ("games", "practices", "all")
@@ -398,9 +373,6 @@ class HomePageView(TemplateView):
             event_type: event_filter_url("all", event_type=event_type)
             for event_type in ("all", "games", "practices")
         }
-        context["all_calendars_url"] = event_filter_url(
-            event_view, calendars_override=active_calendars
-        )
         context["saved_links"] = SavedLink.objects.all()
         context["saved_link_form"] = SavedLinkForm()
         context["calendars_expanded"] = (

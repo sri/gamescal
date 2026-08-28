@@ -104,8 +104,6 @@
       <form class="event-all-filter" method="get">
         <input type="hidden" name="view" value="all">
         <input type="hidden" name="scope" value="{{ event_scope }}">
-        <input type="hidden" name="calendar_filter" value="1">
-        {% for calendar in selected_calendars %}<input type="hidden" name="calendar" value="{{ calendar.pk }}">{% endfor %}
         {% if request_debug %}<input type="hidden" name="debug" value="1">{% endif %}
         <label class="visually-hidden" for="all-event-type">Filter all events by type</label>
         <select class="form-select form-select-sm" id="all-event-type" name="type" onchange="this.form.submit()">
@@ -125,28 +123,6 @@
         <a class="nav-link {% if event_scope == 'mine' %}active{% endif %}" href="{{ event_scope_urls.mine }}">Mine</a>
         <a class="nav-link {% if event_scope == 'others' %}active{% endif %}" href="{{ event_scope_urls.others }}">Others</a>
       </nav>
-      <form method="get" class="event-calendar-filter">
-        <input type="hidden" name="view" value="{{ event_view }}">
-        <input type="hidden" name="scope" value="{{ event_scope }}">
-        <input type="hidden" name="calendar_filter" value="1">
-        {% if event_view == 'all' %}<input type="hidden" name="type" value="{{ all_event_type }}">{% endif %}
-        {% if request_debug %}<input type="hidden" name="debug" value="1">{% endif %}
-        <fieldset>
-          <legend class="visually-hidden">Active calendars to display</legend>
-          <div class="event-calendar-options">
-            {% for calendar in active_calendars %}
-              <label class="event-calendar-option">
-                <input type="checkbox" name="calendar" value="{{ calendar.pk }}"{% if calendar.pk in selected_calendar_ids %} checked{% endif %}>
-                <span>{{ calendar.name }}{% if calendar.is_mine %} · Mine{% endif %}</span>
-              </label>
-            {% endfor %}
-          </div>
-        </fieldset>
-        <div class="d-flex gap-2">
-          <button class="btn btn-sm btn-outline-primary" type="submit">Apply Calendars</button>
-          <a class="btn btn-sm btn-link text-nowrap" href="{{ all_calendars_url }}">Select All</a>
-        </div>
-      </form>
     </div>
   {% endif %}
 
