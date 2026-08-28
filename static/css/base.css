@@ -382,6 +382,46 @@ a {
   border-left: 0.35rem solid hsl(var(--location-hue) 68% 48%);
 }
 
+.event-external-calendar {
+  --bs-table-bg: #f5f5f4;
+  --bs-table-hover-bg: #eeeeec;
+}
+
+.event-external-calendar > td:first-child {
+  border-left: 0.35rem solid #a8a29e;
+}
+
+.event-external-calendar .location-chip {
+  border-color: #d6d3d1;
+  color: #57534e;
+  background: #e7e5e4;
+}
+
+.event-external-calendar .location-chip:hover {
+  color: #44403c;
+  background: #d6d3d1;
+}
+
+.event-external-calendar .location-color-dot {
+  background: #78716c;
+}
+
+.event-external-calendar .calendar-label,
+.mobile-event-external-calendar .calendar-label {
+  color: #57534e;
+  background: #e7e5e4;
+}
+
+.event-external-calendar .event-type-game,
+.event-external-calendar .event-type-practice,
+.event-external-calendar .event-type-tournament,
+.mobile-event-external-calendar .event-type-game,
+.mobile-event-external-calendar .event-type-practice,
+.mobile-event-external-calendar .event-type-tournament {
+  color: #57534e;
+  background: #e7e5e4;
+}
+
 .map-link {
   color: inherit;
   text-decoration-color: var(--bs-border-color);
@@ -458,6 +498,32 @@ a {
 .mobile-event-location-colored {
   border-left: 0.35rem solid hsl(var(--location-hue) 68% 48%);
   background: hsl(var(--location-hue) 72% 98%);
+}
+
+.mobile-event-external-calendar {
+  border-left: 0.35rem solid #a8a29e;
+  box-shadow: 0 0.15rem 0.5rem rgb(87 83 78 / 8%);
+  background: #f5f5f4;
+}
+
+.mobile-event-external-calendar .mobile-event-date {
+  color: #57534e;
+  background: #e7e5e4;
+}
+
+.mobile-event-external-calendar .mobile-location-link {
+  border-color: #d6d3d1;
+  color: #57534e;
+  background: #e7e5e4;
+}
+
+.mobile-event-external-calendar .mobile-location-link:hover {
+  color: #44403c;
+  background: #d6d3d1;
+}
+
+.mobile-event-external-calendar .location-color-dot {
+  background: #78716c;
 }
 
 .mobile-event-header {

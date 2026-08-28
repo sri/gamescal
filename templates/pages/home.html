@@ -142,7 +142,7 @@
         <tbody>
           {% for event in events %}
             {% with local_start=event.starts_at|in_timezone:event.calendar.timezone destination=event.address|default:event.location %}
-              <tr class="{% if event.status == 'cancelled' %}event-cancelled {% endif %}{% if event.location %}event-location-colored{% endif %}"{% if event.location %} style="--location-hue: {{ event.location|location_hue }};"{% endif %}>
+              <tr class="{% if event.status == 'cancelled' %}event-cancelled {% endif %}{% if not event.calendar.is_mine %}event-external-calendar{% elif event.location %}event-location-colored{% endif %}"{% if event.calendar.is_mine and event.location %} style="--location-hue: {{ event.location|location_hue }};"{% endif %}>
                 <td class="event-date">
                   <span class="event-month">{{ local_start|date:"M" }}</span>
                   <span class="event-day">{{ local_start|date:"j" }}</span>
@@ -157,7 +157,7 @@
                   </div>
                   {% if event.team1 and event.team2 %}<div class="small text-body-secondary">{{ event.team1 }} vs {{ event.team2 }}</div>{% endif %}
                   <span class="badge event-type-{{ event.event_type }} mt-1">{{ event.get_event_type_display }}</span>
-                  {% if event.is_mine %}<span class="badge text-bg-primary mt-1">Mine</span>{% endif %}
+                  {% if event.is_mine %}<span class="badge {% if event.calendar.is_mine %}text-bg-primary{% else %}text-bg-secondary{% endif %} mt-1">Mine</span>{% endif %}
                   {% if event.status != 'confirmed' %}<span class="badge text-bg-warning mt-1">{{ event.get_status_display }}</span>{% endif %}
                   {% if event.schedule_conflict %}
                     <div class="schedule-conflict mt-2" title="{{ event.schedule_conflict_details }}">
@@ -192,7 +192,7 @@
     <div class="mobile-event-list d-md-none">
       {% for event in events %}
         {% with local_start=event.starts_at|in_timezone:event.calendar.timezone destination=event.address|default:event.location %}
-          <article class="mobile-event-card {% if event.status == 'cancelled' %}mobile-event-cancelled {% endif %}{% if event.location %}mobile-event-location-colored {% endif %}{% if event.game_gap_after %}mobile-event-has-gap{% endif %}"{% if event.location %} style="--location-hue: {{ event.location|location_hue }};"{% endif %}>
+          <article class="mobile-event-card {% if event.status == 'cancelled' %}mobile-event-cancelled {% endif %}{% if not event.calendar.is_mine %}mobile-event-external-calendar {% elif event.location %}mobile-event-location-colored {% endif %}{% if event.game_gap_after %}mobile-event-has-gap{% endif %}"{% if event.calendar.is_mine and event.location %} style="--location-hue: {{ event.location|location_hue }};"{% endif %}>
             <header class="mobile-event-header">
               <div class="mobile-event-when">
                 <div class="mobile-event-date">
@@ -213,7 +213,7 @@
               </h3>
               <div class="d-flex align-items-center gap-2 flex-wrap">
                 <span class="badge event-type-{{ event.event_type }}">{{ event.get_event_type_display }}</span>
-                {% if event.is_mine %}<span class="badge text-bg-primary">Mine</span>{% endif %}
+                {% if event.is_mine %}<span class="badge {% if event.calendar.is_mine %}text-bg-primary{% else %}text-bg-secondary{% endif %}">Mine</span>{% endif %}
                 {% if event.status != 'confirmed' %}<span class="badge text-bg-warning">{{ event.get_status_display }}</span>{% endif %}
               </div>
               {% if event.schedule_conflict %}

@@ -300,6 +300,8 @@ class PageTests(TestCase):
         )
         self.assertContains(all_games, "My game")
         self.assertContains(all_games, "Other game")
+        self.assertContains(all_games, '<tr class="event-external-calendar">')
+        self.assertContains(all_games, "mobile-event-external-calendar")
 
     @patch("pages.views.timezone.now", return_value=TEST_NOW)
     def test_event_calendar_link_falls_back_to_feed_url(self, _mocked_now):
