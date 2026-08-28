@@ -108,7 +108,7 @@
               </button>
             </form>
             <a class="btn btn-outline-secondary" href="{% url 'calendar_rules' calendar.pk %}">Manage Classification Rules</a>
-            {% if calendar.website_url %}<a class="btn btn-outline-secondary" href="{{ calendar.website_url }}" target="_blank" rel="noopener">Open Website ↗</a>{% endif %}
+            {% if calendar.website_url %}<a class="btn btn-outline-secondary" href="{{ calendar.website_url }}" target="_blank" rel="noopener noreferrer">Open Website ↗</a>{% endif %}
           </div>
         </div>
       </div>

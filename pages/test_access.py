@@ -48,6 +48,7 @@ class SharedAccessTests(TestCase):
         self.assertContains(response, "Enter the shared password")
         self.assertNotContains(response, 'class="navbar')
         self.assertContains(response, 'name="password"')
+        self.assertEqual(response.headers["Referrer-Policy"], "no-referrer")
 
     def test_correct_password_unlocks_the_application(self):
         response = self.unlock()

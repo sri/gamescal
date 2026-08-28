@@ -30,8 +30,8 @@
     <div class="card-body py-3">
       <dl class="row mb-0 small">
         <dt class="col-sm-2 text-body-secondary">Calendar feed</dt>
-        <dd class="col-sm-10 text-break mb-2"><a href="{{ cal_url }}" target="_blank" rel="noopener">{{ cal_url }}</a></dd>
-        {% if website_url %}<dt class="col-sm-2 text-body-secondary">Website</dt><dd class="col-sm-10 mb-0"><a href="{{ website_url }}" target="_blank" rel="noopener">{{ website_url }}</a></dd>{% endif %}
+        <dd class="col-sm-10 text-break mb-2"><a href="{{ cal_url }}" target="_blank" rel="noopener noreferrer">{{ cal_url }}</a></dd>
+        {% if website_url %}<dt class="col-sm-2 text-body-secondary">Website</dt><dd class="col-sm-10 mb-0"><a href="{{ website_url }}" target="_blank" rel="noopener noreferrer">{{ website_url }}</a></dd>{% endif %}
       </dl>
     </div>
   </div>
@@ -59,7 +59,7 @@
                 </td>
                 <td>
                   {% if event.location %}
-                    <a class="map-link location-chip" href="{{ destination|google_maps_directions:event.directions_origin }}" target="_blank" rel="noopener" title="{% if event.directions_origin %}Directions from the previous game in Google Maps{% else %}Get directions in Google Maps{% endif %}">
+                    <a class="map-link location-chip" href="{{ destination|google_maps_directions:event.directions_origin }}" target="_blank" rel="noopener noreferrer" title="{% if event.directions_origin %}Directions from the previous game in Google Maps{% else %}Get directions in Google Maps{% endif %}">
                       <span class="location-color-dot" aria-hidden="true"></span>{% if event.directions_origin %}<span class="visually-hidden">Directions from the previous game to </span>{% endif %}{{ event.location }} <span aria-hidden="true">↗</span>
                     </a>
                   {% else %}

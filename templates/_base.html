@@ -41,12 +41,12 @@
   <footer class="container shared-access-footer">
     <div class="footer-meta">
       {% if build_info %}
-        <small class="build-version"><a href="{{ build_info.commit_url }}" target="_blank" rel="noopener" title="View this commit on GitHub"><code>{{ build_info.sha }}</code>:{{ build_info.committed_date|date:"Y-m-d" }}</a>({{ build_info.committed_at|timesince }} ago)</small>
+        <small class="build-version"><a href="{{ build_info.commit_url }}" target="_blank" rel="noopener noreferrer" title="View this commit on GitHub"><code>{{ build_info.sha }}</code>:{{ build_info.committed_date|date:"Y-m-d" }}</a>({{ build_info.committed_at|timesince }} ago)</small>
       {% endif %}
       {% if saved_links %}
         <nav class="footer-saved-links" aria-label="Saved links">
           {% for link in saved_links %}
-            <a href="{{ link.url }}" target="_blank" rel="noopener" title="{{ link.url }}">{% if link.name %}{{ link.name }}{% else %}{{ link.url }}{% endif %}<span aria-hidden="true"> ↗</span></a>
+            <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer" title="{{ link.url }}">{% if link.name %}{{ link.name }}{% else %}{{ link.url }}{% endif %}<span aria-hidden="true"> ↗</span></a>
           {% endfor %}
         </nav>
       {% endif %}

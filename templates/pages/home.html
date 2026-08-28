@@ -49,7 +49,7 @@
       <div class="small fw-semibold text-uppercase text-body-secondary mb-2">Links</div>
       {% for link in saved_links %}
         <div class="saved-link-row">
-          <a class="saved-link-url" href="{{ link.url }}" target="_blank" rel="noopener" title="{{ link.url }}">{% if link.name %}{{ link.name }}{% else %}{{ link.url }}{% endif %} <span aria-hidden="true">↗</span></a>
+          <a class="saved-link-url" href="{{ link.url }}" target="_blank" rel="noopener noreferrer" title="{{ link.url }}">{% if link.name %}{{ link.name }}{% else %}{{ link.url }}{% endif %} <span aria-hidden="true">↗</span></a>
           <details class="saved-link-edit">
             <summary>Edit</summary>
             <form method="post" action="{% url 'saved_link_edit' link.pk %}" class="saved-link-edit-form">
@@ -140,7 +140,7 @@
                 </td>
                 <td class="event-title-cell">
                   <div class="fw-semibold">
-                    {% if event.event_url %}<a href="{{ event.event_url }}" target="_blank" rel="noopener">{{ event.title }}</a>{% else %}{{ event.title }}{% endif %}
+                    {% if event.event_url %}<a href="{{ event.event_url }}" target="_blank" rel="noopener noreferrer">{{ event.title }}</a>{% else %}{{ event.title }}{% endif %}
                   </div>
                   {% if event.team1 and event.team2 %}<div class="small text-body-secondary">{{ event.team1 }} vs {{ event.team2 }}</div>{% endif %}
                   <span class="badge event-type-{{ event.event_type }} mt-1">{{ event.get_event_type_display }}</span>
@@ -154,14 +154,14 @@
                 </td>
                 <td>
                   {% if event.location %}
-                    <a class="map-link location-chip" href="{{ destination|google_maps_directions:event.directions_origin }}" target="_blank" rel="noopener" title="{% if event.directions_origin %}Directions from the previous game in Google Maps{% else %}Get directions in Google Maps{% endif %}">
+                    <a class="map-link location-chip" href="{{ destination|google_maps_directions:event.directions_origin }}" target="_blank" rel="noopener noreferrer" title="{% if event.directions_origin %}Directions from the previous game in Google Maps{% else %}Get directions in Google Maps{% endif %}">
                       <span class="location-color-dot" aria-hidden="true"></span>{% if event.directions_origin %}<span class="visually-hidden">Directions from the previous game to </span>{% endif %}{{ event.location }} <span aria-hidden="true">↗</span>
                     </a>
                   {% else %}
                     <span class="text-body-secondary">—</span>
                   {% endif %}
                 </td>
-                <td><a class="calendar-label" href="{{ event.calendar.website_url|default:event.calendar.cal_url }}" target="_blank" rel="noopener" title="Open {{ event.calendar.name }} calendar">{{ event.calendar.name }}</a></td>
+                <td><a class="calendar-label" href="{{ event.calendar.website_url|default:event.calendar.cal_url }}" target="_blank" rel="noopener noreferrer" title="Open {{ event.calendar.name }} calendar">{{ event.calendar.name }}</a></td>
               </tr>
             {% endwith %}
           {% endfor %}
@@ -184,12 +184,12 @@
                   <strong>{% if event.is_all_day %}All day{% else %}{{ local_start|time:"g:i A" }}{% endif %}</strong>
                 </div>
               </div>
-              <a class="calendar-label mobile-calendar-label" href="{{ event.calendar.website_url|default:event.calendar.cal_url }}" target="_blank" rel="noopener" title="Open {{ event.calendar.name }} calendar">{{ event.calendar.name }}</a>
+              <a class="calendar-label mobile-calendar-label" href="{{ event.calendar.website_url|default:event.calendar.cal_url }}" target="_blank" rel="noopener noreferrer" title="Open {{ event.calendar.name }} calendar">{{ event.calendar.name }}</a>
             </header>
 
             <div class="mobile-event-body">
               <h3 class="mobile-event-title">
-                {% if event.event_url %}<a href="{{ event.event_url }}" target="_blank" rel="noopener">{{ event.title }}</a>{% else %}{{ event.title }}{% endif %}
+                {% if event.event_url %}<a href="{{ event.event_url }}" target="_blank" rel="noopener noreferrer">{{ event.title }}</a>{% else %}{{ event.title }}{% endif %}
               </h3>
               <div class="d-flex align-items-center gap-2 flex-wrap">
                 <span class="badge event-type-{{ event.event_type }}">{{ event.get_event_type_display }}</span>
@@ -198,7 +198,7 @@
             </div>
 
             {% if event.location %}
-              <a class="mobile-location-link" href="{{ destination|google_maps_directions:event.directions_origin }}" target="_blank" rel="noopener" title="{% if event.directions_origin %}Directions from the previous game in Google Maps{% else %}Get directions in Google Maps{% endif %}">
+              <a class="mobile-location-link" href="{{ destination|google_maps_directions:event.directions_origin }}" target="_blank" rel="noopener noreferrer" title="{% if event.directions_origin %}Directions from the previous game in Google Maps{% else %}Get directions in Google Maps{% endif %}">
                 <span class="location-color-dot" aria-hidden="true"></span>
                 <span class="mobile-location-text">{% if event.directions_origin %}<span class="visually-hidden">Directions from the previous game to </span>{% endif %}{{ event.location }}</span>
                 <span class="mobile-location-arrow" aria-hidden="true">↗</span>

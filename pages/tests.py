@@ -817,7 +817,7 @@ class PageTests(TestCase):
         self.assertContains(home, 'class="collapse show" id="calendarsCollapse"')
         self.assertContains(
             home,
-            'href="https://example.com/team-schedule" target="_blank"',
+            'href="https://example.com/team-schedule" target="_blank" rel="noopener noreferrer"',
             count=2,
         )
         self.assertContains(home, "Team schedule", count=3)
