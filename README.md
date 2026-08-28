@@ -44,8 +44,8 @@ estimate driving time, distance, and the usable buffer between games.
   to scan on the go.
 - **Useful event views** — keep Games and Practices within the current Monday–Sunday
   week, filter Games and All by ownership, and use All to browse every upcoming event.
-- **Smart classification** — classify games, practices, tournaments, and other events
-  automatically, with custom rules for each calendar.
+- **Smart rules** — classify event types and use per-calendar Show only/Hide
+  visibility rules, with a full marked preview for safely refining filters.
 - **Schedule cross-checking** — match your team in official league feeds and flag time
   or location conflicts between copies of the same game.
 - **Directions in one tap** — open a venue in Google Maps, including directions from

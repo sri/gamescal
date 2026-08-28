@@ -4,6 +4,7 @@ from .models import (
     Calendar,
     CalendarEvent,
     CalendarEventRule,
+    CalendarVisibilityRule,
     GeoapifyAPILog,
     GeocodedLocation,
     RouteEstimate,
@@ -20,7 +21,15 @@ class SavedLinkAdmin(admin.ModelAdmin):
 
 class CalendarEventInline(admin.TabularInline):
     model = CalendarEvent
-    fields = ("title", "starts_at", "location", "event_type", "is_mine", "status")
+    fields = (
+        "title",
+        "starts_at",
+        "location",
+        "event_type",
+        "is_mine",
+        "is_visible",
+        "status",
+    )
     extra = 0
     show_change_link = True
 
@@ -50,9 +59,17 @@ class CalendarEventAdmin(admin.ModelAdmin):
         "location",
         "event_type",
         "is_mine",
+        "is_visible",
         "status",
     )
-    list_filter = ("calendar", "event_type", "is_mine", "status", "is_all_day")
+    list_filter = (
+        "calendar",
+        "event_type",
+        "is_mine",
+        "is_visible",
+        "status",
+        "is_all_day",
+    )
     search_fields = ("title", "description", "location", "team1", "team2")
     date_hierarchy = "starts_at"
     readonly_fields = ("created_at", "updated_at")
@@ -110,6 +127,21 @@ class RouteEstimateAdmin(admin.ModelAdmin):
     )
     search_fields = ("origin__display_name", "destination__display_name")
     readonly_fields = ("created_at", "attempted_at", "calculated_at")
+
+
+@admin.register(CalendarVisibilityRule)
+class CalendarVisibilityRuleAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "calendar",
+        "action",
+        "match_field",
+        "pattern",
+        "priority",
+        "is_active",
+    )
+    list_filter = ("calendar", "action", "match_field", "is_active")
+    search_fields = ("name", "pattern", "calendar__name")
 
 
 @admin.register(CalendarEventRule)

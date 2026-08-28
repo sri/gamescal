@@ -11,6 +11,7 @@ from .models import (
     Calendar,
     CalendarEvent,
     CalendarEventRule,
+    CalendarVisibilityRule,
     GeoapifyAPILog,
     SavedLink,
 )
@@ -714,6 +715,13 @@ class PageTests(TestCase):
             event_type=CalendarEvent.EventType.PRACTICE,
             priority=1,
         )
+        CalendarVisibilityRule.objects.create(
+            calendar=calendar,
+            name="Hide Falcons",
+            action=CalendarVisibilityRule.Action.HIDE,
+            match_field=CalendarVisibilityRule.MatchField.TITLE,
+            pattern="Falcons",
+        )
         fetch.return_value = self.sample_result()
 
         response = self.client.post(
@@ -745,6 +753,7 @@ class PageTests(TestCase):
         refreshed_event = calendar.events.get(title="Falcons vs Bears")
         self.assertEqual(refreshed_event.event_type, CalendarEvent.EventType.PRACTICE)
         self.assertTrue(refreshed_event.is_mine)
+        self.assertFalse(refreshed_event.is_visible)
 
     @patch("pages.views.fetch_and_parse_calendar")
     def test_refresh_keeps_old_events_when_download_fails(self, fetch):
@@ -833,6 +842,123 @@ class PageTests(TestCase):
         response = self.client.get(reverse("calendars_refresh_all"))
 
         self.assertEqual(response.status_code, 405)
+
+    def test_visibility_rules_mark_every_event_shown_or_hidden_in_preview(self):
+        calendar = Calendar.objects.create(
+            name="League",
+            cal_url="https://example.com/visibility.ics",
+            is_mine=True,
+        )
+        matching = CalendarEvent.objects.create(
+            calendar=calendar,
+            external_uid="falcons",
+            title="Falcons vs Bears",
+            team1="Falcons",
+            team2="Bears",
+            starts_at=timezone.now() + timedelta(days=1),
+            ends_at=timezone.now() + timedelta(days=1, hours=1),
+            event_type=CalendarEvent.EventType.GAME,
+        )
+        unrelated = CalendarEvent.objects.create(
+            calendar=calendar,
+            external_uid="tigers",
+            title="Tigers vs Wolves",
+            team1="Tigers",
+            team2="Wolves",
+            starts_at=timezone.now() + timedelta(days=2),
+            ends_at=timezone.now() + timedelta(days=2, hours=1),
+            event_type=CalendarEvent.EventType.GAME,
+        )
+
+        add_show = self.client.post(
+            reverse("calendar_visibility_rules", kwargs={"pk": calendar.pk}),
+            {
+                "name": "Teams we follow",
+                "action": CalendarVisibilityRule.Action.SHOW,
+                "match_field": CalendarVisibilityRule.MatchField.TEAM,
+                "pattern": "Falcons",
+                "priority": 10,
+                "is_active": "on",
+            },
+        )
+
+        self.assertRedirects(
+            add_show,
+            reverse("calendar_visibility_rules", kwargs={"pk": calendar.pk}),
+        )
+        matching.refresh_from_db()
+        unrelated.refresh_from_db()
+        self.assertTrue(matching.is_visible)
+        self.assertFalse(unrelated.is_visible)
+
+        preview = self.client.get(
+            reverse("calendar_visibility_rules", kwargs={"pk": calendar.pk})
+        )
+        self.assertContains(preview, "All imported events")
+        self.assertContains(preview, "Falcons vs Bears")
+        self.assertContains(preview, "Tigers vs Wolves")
+        self.assertContains(preview, "1 shown")
+        self.assertContains(preview, "1 hidden")
+        self.assertContains(preview, "Shown by: Teams we follow")
+        self.assertContains(preview, "no Show only rule matched")
+
+        add_hide = self.client.post(
+            reverse("calendar_visibility_rules", kwargs={"pk": calendar.pk}),
+            {
+                "name": "Hide Bears",
+                "action": CalendarVisibilityRule.Action.HIDE,
+                "match_field": CalendarVisibilityRule.MatchField.TEAM,
+                "pattern": "Bears",
+                "priority": 20,
+                "is_active": "on",
+            },
+        )
+        self.assertEqual(add_hide.status_code, 302)
+        matching.refresh_from_db()
+        self.assertFalse(matching.is_visible)
+
+        home = self.client.get(
+            reverse("home"), {"view": "all", "scope": "mine"}
+        )
+        self.assertNotContains(home, "Falcons vs Bears")
+        self.assertNotContains(home, "Tigers vs Wolves")
+
+    def test_visibility_rule_toggle_and_delete_reapply_existing_events(self):
+        calendar = Calendar.objects.create(
+            name="League", cal_url="https://example.com/visibility-actions.ics"
+        )
+        event = CalendarEvent.objects.create(
+            calendar=calendar,
+            external_uid="hidden-event",
+            title="Hidden game",
+            starts_at=timezone.now() + timedelta(days=1),
+            ends_at=timezone.now() + timedelta(days=1, hours=1),
+            is_visible=False,
+        )
+        rule = CalendarVisibilityRule.objects.create(
+            calendar=calendar,
+            name="Hide games",
+            action=CalendarVisibilityRule.Action.HIDE,
+            match_field=CalendarVisibilityRule.MatchField.TITLE,
+            pattern="game",
+        )
+
+        self.client.post(
+            reverse(
+                "calendar_visibility_rule_toggle",
+                kwargs={"pk": calendar.pk, "rule_pk": rule.pk},
+            )
+        )
+        event.refresh_from_db()
+        self.assertTrue(event.is_visible)
+
+        self.client.post(
+            reverse(
+                "calendar_visibility_rule_delete",
+                kwargs={"pk": calendar.pk, "rule_pk": rule.pk},
+            )
+        )
+        self.assertFalse(CalendarVisibilityRule.objects.filter(pk=rule.pk).exists())
 
     def test_calendar_rule_creation_reclassifies_existing_events(self):
         calendar = Calendar.objects.create(
@@ -1028,6 +1154,7 @@ class PageTests(TestCase):
         self.assertContains(response, "Replace All Events")
         self.assertContains(response, "Classification rules are preserved.")
         self.assertContains(response, "Manage Classification Rules")
+        self.assertContains(response, "Manage Event Visibility")
 
     def test_calendar_edit_reclassifies_existing_events_from_team_names(self):
         calendar = Calendar.objects.create(

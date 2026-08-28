@@ -8,7 +8,8 @@
   <div class="mt-3 mb-4">
     <div class="text-uppercase small fw-semibold text-primary mb-1">Calendar rules</div>
     <h1 class="mb-1">{{ calendar.name }}</h1>
-    <p class="text-body-secondary mb-0">Classify this calendar’s events using case-insensitive keywords.</p>
+    <p class="text-body-secondary mb-2">Classify this calendar’s events using case-insensitive keywords.</p>
+    <a class="btn btn-sm btn-outline-secondary" href="{% url 'calendar_visibility_rules' calendar.pk %}">Manage Event Visibility</a>
   </div>
 
   <div class="row g-4">

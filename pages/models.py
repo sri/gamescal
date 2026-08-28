@@ -79,6 +79,7 @@ class CalendarEvent(models.Model):
         max_length=20, choices=EventType.choices, default=EventType.OTHER, db_index=True
     )
     is_mine = models.BooleanField(default=False, db_index=True)
+    is_visible = models.BooleanField(default=True, db_index=True)
     raw_data = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -178,6 +179,44 @@ class GeoapifyAPILog(models.Model):
     def __str__(self):
         status = self.response_status or "error"
         return f"{self.get_request_type_display()} · {status}"
+
+
+class CalendarVisibilityRule(models.Model):
+    class MatchField(models.TextChoices):
+        TITLE = "title", "Title"
+        DESCRIPTION = "description", "Description"
+        LOCATION = "location", "Location"
+        CATEGORY = "category", "ICS category"
+        TEAM = "team", "Either team"
+
+    class Action(models.TextChoices):
+        SHOW = "show", "Show only matches"
+        HIDE = "hide", "Hide matches"
+
+    calendar = models.ForeignKey(
+        Calendar, on_delete=models.CASCADE, related_name="visibility_rules"
+    )
+    name = models.CharField(max_length=100)
+    match_field = models.CharField(
+        max_length=20, choices=MatchField.choices, default=MatchField.TITLE
+    )
+    pattern = models.CharField(
+        max_length=200,
+        help_text="Case-insensitive text to look for, such as a team name.",
+    )
+    action = models.CharField(max_length=20, choices=Action.choices)
+    priority = models.PositiveSmallIntegerField(
+        default=100, help_text="Lower numbers are displayed first. Hide always wins."
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["priority", "created_at"]
+
+    def __str__(self):
+        return f"{self.calendar}: {self.name}"
 
 
 class CalendarEventRule(models.Model):

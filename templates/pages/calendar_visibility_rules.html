@@ -1,0 +1,132 @@
+{% extends '_base.html' %}
+{% load calendar_tags %}
+
+{% block title %}Event visibility for {{ calendar.name }} · Gamescal{% endblock title %}
+
+{% block content %}
+<div class="py-4">
+  <a class="back-link" href="{% url 'calendar_edit' calendar.pk %}">← Back to calendar settings</a>
+  <div class="mt-3 mb-4">
+    <div class="text-uppercase small fw-semibold text-primary mb-1">Event visibility rules</div>
+    <h1 class="mb-1">{{ calendar.name }}</h1>
+    <p class="text-body-secondary mb-2">Use <strong>Show only matches</strong> to select events and <strong>Hide matches</strong> to remove them. Hide always wins.</p>
+    <a class="btn btn-sm btn-outline-secondary" href="{% url 'calendar_rules' calendar.pk %}">Manage Classification Rules</a>
+  </div>
+
+  <div class="row g-4 mb-5">
+    <div class="col-lg-7">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <h2 class="h5 mb-0">Visibility rules</h2>
+        <span class="small text-body-secondary">Changes apply after each save</span>
+      </div>
+      {% if rules %}
+        <div class="rule-list">
+          {% for rule in rules %}
+            <div class="rule-row {% if not rule.is_active %}rule-inactive{% endif %}">
+              <div class="rule-priority" title="Priority">{{ rule.priority }}</div>
+              <div class="rule-info">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                  <strong>{{ rule.name }}</strong>
+                  <span class="badge {% if rule.action == 'show' %}text-bg-success{% else %}text-bg-secondary{% endif %}">{{ rule.get_action_display }}</span>
+                  {% if not rule.is_active %}<span class="badge text-bg-secondary">Disabled</span>{% endif %}
+                </div>
+                <div class="small text-body-secondary">
+                  {{ rule.get_match_field_display }} contains <code>{{ rule.pattern }}</code>
+                </div>
+              </div>
+              <div class="rule-actions">
+                <a class="btn btn-sm btn-outline-primary" href="{% url 'calendar_visibility_rule_edit' calendar.pk rule.pk %}">Edit</a>
+                <form method="post" action="{% url 'calendar_visibility_rule_toggle' calendar.pk rule.pk %}">
+                  {% csrf_token %}
+                  <button class="btn btn-sm btn-outline-secondary" type="submit">{% if rule.is_active %}Disable{% else %}Enable{% endif %}</button>
+                </form>
+                <form method="post" action="{% url 'calendar_visibility_rule_delete' calendar.pk rule.pk %}" onsubmit="return confirm('Delete this visibility rule?')">
+                  {% csrf_token %}
+                  <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                </form>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-rules text-center">
+          <h3 class="h6">No visibility rules</h3>
+          <p class="small text-body-secondary mb-0">Every event is currently shown.</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm sticky-lg-top rule-form-card">
+        <div class="card-body p-4">
+          <h2 class="h5">{% if editing_rule %}Edit visibility rule{% else %}Add a visibility rule{% endif %}</h2>
+          <p class="small text-body-secondary">Multiple Show only rules are combined with OR. An event matching any Hide rule is hidden.</p>
+          <form method="post" class="rule-form">
+            {% csrf_token %}
+            {% for field in form %}
+              {% if field.name == 'is_active' %}
+                <div class="form-check mb-3">
+                  {{ field }}
+                  <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                  {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </div>
+              {% else %}
+                <div class="mb-3">
+                  <label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                  {{ field }}
+                  {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                  {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </div>
+              {% endif %}
+            {% endfor %}
+            <div class="d-flex justify-content-end gap-2">
+              {% if editing_rule %}<a class="btn btn-light" href="{% url 'calendar_visibility_rules' calendar.pk %}">Cancel</a>{% endif %}
+              <button class="btn btn-primary" type="submit">{% if editing_rule %}Save Rule{% else %}Add Rule{% endif %}</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section aria-labelledby="visibility-preview-heading">
+    <div class="d-flex flex-column flex-sm-row align-items-sm-end justify-content-between gap-2 mb-3">
+      <div>
+        <div class="text-uppercase small fw-semibold text-primary mb-1">Rule preview</div>
+        <h2 class="h4 mb-0" id="visibility-preview-heading">All imported events</h2>
+      </div>
+      <div class="d-flex gap-2">
+        <span class="badge text-bg-success">{{ visible_count }} shown</span>
+        <span class="badge text-bg-secondary">{{ hidden_count }} hidden</span>
+      </div>
+    </div>
+
+    {% if events %}
+      <div class="table-responsive event-table-wrap">
+        <table class="table table-hover align-middle mb-0 event-table visibility-preview-table">
+          <thead><tr><th>Status</th><th>Date</th><th>Event</th><th>Location</th><th>Why</th></tr></thead>
+          <tbody>
+            {% for event in events %}
+              {% with local_start=event.starts_at|in_timezone:calendar.timezone %}
+                <tr class="{% if not event.visibility_preview %}visibility-row-hidden{% endif %}">
+                  <td><span class="badge {% if event.visibility_preview %}text-bg-success{% else %}text-bg-secondary{% endif %}">{% if event.visibility_preview %}Shown{% else %}Hidden{% endif %}</span></td>
+                  <td class="text-nowrap">{{ local_start|date:"M j, Y" }}{% if not event.is_all_day %}<br><span class="small text-body-secondary">{{ local_start|time:"g:i A" }}</span>{% endif %}</td>
+                  <td><strong>{{ event.title }}</strong><br><span class="badge event-type-{{ event.event_type }} mt-1">{{ event.get_event_type_display }}</span></td>
+                  <td>{{ event.location|default:"—" }}</td>
+                  <td class="small">{{ event.visibility_reason }}</td>
+                </tr>
+              {% endwith %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state text-center">
+        <div class="empty-state-icon" aria-hidden="true">📭</div>
+        <h3 class="h5">No imported events</h3>
+        <p class="text-body-secondary">Replace this calendar’s events to load a preview.</p>
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock content %}

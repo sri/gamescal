@@ -108,6 +108,7 @@
               </button>
             </form>
             <a class="btn btn-outline-secondary" href="{% url 'calendar_rules' calendar.pk %}">Manage Classification Rules</a>
+            <a class="btn btn-outline-secondary" href="{% url 'calendar_visibility_rules' calendar.pk %}">Manage Event Visibility <span class="badge text-bg-secondary ms-1">{{ visibility_rule_count }}</span></a>
             {% if calendar.website_url %}<a class="btn btn-outline-secondary" href="{{ calendar.website_url }}" target="_blank" rel="noopener noreferrer">Open Website ↗</a>{% endif %}
           </div>
         </div>
@@ -122,7 +123,8 @@
             <dt>Created</dt><dd>{{ calendar.created_at|date:"M j, Y, g:i A" }}</dd>
             <dt>Last changed</dt><dd>{{ calendar.updated_at|date:"M j, Y, g:i A" }}</dd>
             <dt>Last refreshed</dt><dd>{% if calendar.last_synced_at %}{{ calendar.last_synced_at|date:"M j, Y, g:i A" }}{% else %}Never{% endif %}</dd>
-            <dt>Rules</dt><dd>{{ rule_count }}</dd>
+            <dt>Classification rules</dt><dd>{{ rule_count }}</dd>
+            <dt>Visibility rules</dt><dd>{{ visibility_rule_count }}</dd>
           </dl>
         </div>
       </div>

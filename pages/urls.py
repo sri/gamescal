@@ -8,12 +8,15 @@ from .views import (
     calendar_edit,
     calendar_preview,
     calendar_rules,
+    calendar_visibility_rules,
     clear_geoapify_api_logs,
     confirm_calendar,
     delete_calendar,
     delete_calendar_rule,
+    delete_calendar_visibility_rule,
     delete_saved_link,
     edit_calendar_rule,
+    edit_calendar_visibility_rule,
     edit_saved_link,
     geoapify_api_logs,
     populate_demo_calendar,
@@ -21,6 +24,7 @@ from .views import (
     refresh_calendar,
     toggle_calendar,
     toggle_calendar_rule,
+    toggle_calendar_visibility_rule,
 )
 
 urlpatterns = [
@@ -63,6 +67,26 @@ urlpatterns = [
     path("calendars/<int:pk>/toggle/", toggle_calendar, name="calendar_toggle"),
     path("calendars/<int:pk>/delete/", delete_calendar, name="calendar_delete"),
     path("calendars/<int:pk>/rules/", calendar_rules, name="calendar_rules"),
+    path(
+        "calendars/<int:pk>/visibility/",
+        calendar_visibility_rules,
+        name="calendar_visibility_rules",
+    ),
+    path(
+        "calendars/<int:pk>/visibility/<int:rule_pk>/edit/",
+        edit_calendar_visibility_rule,
+        name="calendar_visibility_rule_edit",
+    ),
+    path(
+        "calendars/<int:pk>/visibility/<int:rule_pk>/toggle/",
+        toggle_calendar_visibility_rule,
+        name="calendar_visibility_rule_toggle",
+    ),
+    path(
+        "calendars/<int:pk>/visibility/<int:rule_pk>/delete/",
+        delete_calendar_visibility_rule,
+        name="calendar_visibility_rule_delete",
+    ),
     path(
         "calendars/<int:pk>/rules/<int:rule_pk>/edit/",
         edit_calendar_rule,

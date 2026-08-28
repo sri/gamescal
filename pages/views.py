@@ -20,12 +20,14 @@ from .forms import (
     CalendarEditForm,
     CalendarEventRuleForm,
     CalendarImportForm,
+    CalendarVisibilityRuleForm,
     SavedLinkForm,
 )
 from .models import (
     Calendar,
     CalendarEvent,
     CalendarEventRule,
+    CalendarVisibilityRule,
     GeoapifyAPILog,
     SavedLink,
 )
@@ -34,6 +36,7 @@ from .services import (
     ImportResult,
     classify_event,
     fetch_and_parse_calendar,
+    visibility_for_event,
 )
 from .travel import get_route_estimate
 
@@ -313,6 +316,7 @@ class HomePageView(TemplateView):
         week_end = week_start + timedelta(days=7)
         upcoming_events = CalendarEvent.objects.select_related("calendar").filter(
             calendar__is_active=True,
+            is_visible=True,
             ends_at__gte=now,
         )
         week_events = upcoming_events.filter(
@@ -685,7 +689,7 @@ def calendar_preview(request, token):
     )
 
 
-def _event_model(calendar, event, rules=()):
+def _event_model(calendar, event, rules=(), visibility_rules=()):
     valid_statuses = {value for value, _label in CalendarEvent.Status.choices}
     status = event.status if event.status in valid_statuses else CalendarEvent.Status.CONFIRMED
     return CalendarEvent(
@@ -705,6 +709,7 @@ def _event_model(calendar, event, rules=()):
         status=status,
         event_type=classify_event(event, rules),
         is_mine=_event_is_mine(calendar, event),
+        is_visible=visibility_for_event(event, visibility_rules)[0],
         raw_data=event.raw_data,
     )
 
@@ -796,6 +801,7 @@ def calendar_edit(request, pk):
             "form": form,
             "event_counts": event_counts,
             "rule_count": calendar.event_rules.count(),
+            "visibility_rule_count": calendar.visibility_rules.count(),
         },
     )
 
@@ -810,9 +816,13 @@ def _replace_calendar_events(calendar, result):
     """Replace a calendar's stored events with a freshly downloaded snapshot."""
     with transaction.atomic():
         rules = list(calendar.event_rules.filter(is_active=True))
+        visibility_rules = list(calendar.visibility_rules.filter(is_active=True))
         calendar.events.all().delete()
         CalendarEvent.objects.bulk_create(
-            [_event_model(calendar, event, rules) for event in result.events]
+            [
+                _event_model(calendar, event, rules, visibility_rules)
+                for event in result.events
+            ]
         )
         calendar.timezone = result.timezone
         calendar.last_synced_at = timezone.now()
@@ -931,6 +941,41 @@ def _reclassify_calendar(calendar):
     return len(changed)
 
 
+def _reapply_calendar_visibility(calendar):
+    rules = list(calendar.visibility_rules.all())
+    changed = []
+    for event in calendar.events.all():
+        is_visible, _reason, _matched = visibility_for_event(event, rules)
+        if event.is_visible != is_visible:
+            event.is_visible = is_visible
+            changed.append(event)
+    if changed:
+        CalendarEvent.objects.bulk_update(changed, ["is_visible"])
+    return len(changed)
+
+
+def _visibility_context(calendar, form, editing_rule=None):
+    rules = list(calendar.visibility_rules.all())
+    events = list(calendar.events.all())
+    visible_count = 0
+    for event in events:
+        is_visible, reason, matched = visibility_for_event(event, rules)
+        event.visibility_preview = is_visible
+        event.visibility_reason = reason
+        event.visibility_matched_rules = matched
+        if is_visible:
+            visible_count += 1
+    return {
+        "calendar": calendar,
+        "rules": rules,
+        "form": form,
+        "editing_rule": editing_rule,
+        "events": events,
+        "visible_count": visible_count,
+        "hidden_count": len(events) - visible_count,
+    }
+
+
 def _rules_context(calendar, form, editing_rule=None):
     return {
         "calendar": calendar,
@@ -1011,3 +1056,87 @@ def delete_calendar_rule(request, pk, rule_pk):
         request, f'Deleted rule “{name}” and reclassified {changed} event(s).'
     )
     return redirect("calendar_rules", pk=calendar.pk)
+
+
+def calendar_visibility_rules(request, pk):
+    calendar = get_object_or_404(Calendar, pk=pk)
+    if request.method == "POST":
+        form = CalendarVisibilityRuleForm(request.POST)
+        if form.is_valid():
+            rule = form.save(commit=False)
+            rule.calendar = calendar
+            rule.save()
+            changed = _reapply_calendar_visibility(calendar)
+            messages.success(
+                request,
+                f'Added visibility rule “{rule.name}”; '
+                f"{changed} event(s) changed visibility.",
+            )
+            return redirect("calendar_visibility_rules", pk=calendar.pk)
+    else:
+        form = CalendarVisibilityRuleForm()
+    return render(
+        request,
+        "pages/calendar_visibility_rules.html",
+        _visibility_context(calendar, form),
+    )
+
+
+def edit_calendar_visibility_rule(request, pk, rule_pk):
+    calendar = get_object_or_404(Calendar, pk=pk)
+    rule = get_object_or_404(
+        CalendarVisibilityRule, pk=rule_pk, calendar=calendar
+    )
+    if request.method == "POST":
+        form = CalendarVisibilityRuleForm(request.POST, instance=rule)
+        if form.is_valid():
+            form.save()
+            changed = _reapply_calendar_visibility(calendar)
+            messages.success(
+                request,
+                f'Updated visibility rule “{rule.name}”; '
+                f"{changed} event(s) changed visibility.",
+            )
+            return redirect("calendar_visibility_rules", pk=calendar.pk)
+    else:
+        form = CalendarVisibilityRuleForm(instance=rule)
+    return render(
+        request,
+        "pages/calendar_visibility_rules.html",
+        _visibility_context(calendar, form, editing_rule=rule),
+    )
+
+
+@require_POST
+def toggle_calendar_visibility_rule(request, pk, rule_pk):
+    calendar = get_object_or_404(Calendar, pk=pk)
+    rule = get_object_or_404(
+        CalendarVisibilityRule, pk=rule_pk, calendar=calendar
+    )
+    rule.is_active = not rule.is_active
+    rule.save(update_fields=["is_active", "updated_at"])
+    changed = _reapply_calendar_visibility(calendar)
+    state = "enabled" if rule.is_active else "disabled"
+    messages.success(
+        request,
+        f'Visibility rule “{rule.name}” was {state}; '
+        f"{changed} event(s) changed visibility.",
+    )
+    return redirect("calendar_visibility_rules", pk=calendar.pk)
+
+
+@require_POST
+def delete_calendar_visibility_rule(request, pk, rule_pk):
+    calendar = get_object_or_404(Calendar, pk=pk)
+    rule = get_object_or_404(
+        CalendarVisibilityRule, pk=rule_pk, calendar=calendar
+    )
+    name = rule.name
+    rule.delete()
+    changed = _reapply_calendar_visibility(calendar)
+    messages.success(
+        request,
+        f'Deleted visibility rule “{name}”; '
+        f"{changed} event(s) changed visibility.",
+    )
+    return redirect("calendar_visibility_rules", pk=calendar.pk)

@@ -1,6 +1,11 @@
 from django import forms
 
-from .models import Calendar, CalendarEventRule, SavedLink
+from .models import (
+    Calendar,
+    CalendarEventRule,
+    CalendarVisibilityRule,
+    SavedLink,
+)
 
 
 class CalendarImportForm(forms.Form):
@@ -96,6 +101,22 @@ class SavedLinkForm(forms.ModelForm):
                 }
             ),
         }
+
+
+class CalendarVisibilityRuleForm(forms.ModelForm):
+    class Meta:
+        model = CalendarVisibilityRule
+        fields = ("name", "action", "match_field", "pattern", "priority", "is_active")
+        widgets = {
+            "name": forms.TextInput(attrs={"placeholder": "Show teams we follow"}),
+            "pattern": forms.TextInput(attrs={"placeholder": "Falcons"}),
+        }
+
+    def clean_pattern(self):
+        pattern = self.cleaned_data["pattern"].strip()
+        if not pattern:
+            raise forms.ValidationError("Enter text to match.")
+        return pattern
 
 
 class CalendarEventRuleForm(forms.ModelForm):

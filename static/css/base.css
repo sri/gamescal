@@ -844,6 +844,16 @@ a {
   color: var(--bs-body-color);
 }
 
+.visibility-row-hidden > td {
+  color: var(--bs-secondary-color);
+  background: var(--bs-tertiary-bg);
+  opacity: 0.78;
+}
+
+.visibility-preview-table td:last-child {
+  min-width: 15rem;
+}
+
 .rule-form input[type="checkbox"] {
   width: 1rem;
   height: 1rem;

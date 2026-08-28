@@ -206,7 +206,32 @@ def _recurrence_id(component, calendar_tz):
 def _rule_value(event, match_field):
     if match_field == "category":
         return " ".join(event.raw_data.get("categories", []))
+    if match_field == "team":
+        return f"{event.team1} {event.team2}".strip()
     return str(getattr(event, match_field, "") or "")
+
+
+def visibility_for_event(event, rules=()):
+    """Return visibility and an explanation for active show/hide rules."""
+    active_rules = [rule for rule in rules if rule.is_active]
+    show_rules = [rule for rule in active_rules if rule.action == "show"]
+    matched = [
+        rule
+        for rule in active_rules
+        if rule.pattern.casefold() in _rule_value(event, rule.match_field).casefold()
+    ]
+    matched_show = [rule for rule in matched if rule.action == "show"]
+    matched_hide = [rule for rule in matched if rule.action == "hide"]
+
+    if matched_hide:
+        names = ", ".join(rule.name for rule in matched_hide)
+        return False, f"Hidden by: {names}", matched
+    if show_rules and not matched_show:
+        return False, "Hidden because no Show only rule matched.", matched
+    if matched_show:
+        names = ", ".join(rule.name for rule in matched_show)
+        return True, f"Shown by: {names}", matched
+    return True, "Shown because there are no active Show only rules.", matched
 
 
 def classify_event(event, rules=()):
