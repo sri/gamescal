@@ -157,7 +157,7 @@
                   </div>
                   {% if event.team1 and event.team2 %}<div class="small text-body-secondary">{{ event.team1 }} vs {{ event.team2 }}</div>{% endif %}
                   <span class="badge event-type-{{ event.event_type }} mt-1">{{ event.get_event_type_display }}</span>
-                  {% if event.is_mine %}<span class="badge {% if event.calendar.is_mine %}text-bg-primary{% else %}text-bg-secondary{% endif %} mt-1">Mine</span>{% endif %}
+                  {% if event.calendar.is_mine %}<span class="badge text-bg-primary mt-1">Mine</span>{% endif %}
                   {% if event.status != 'confirmed' %}<span class="badge text-bg-warning mt-1">{{ event.get_status_display }}</span>{% endif %}
                   {% if event.schedule_conflict %}
                     <div class="schedule-conflict mt-2" title="{{ event.schedule_conflict_details }}">
@@ -213,7 +213,7 @@
               </h3>
               <div class="d-flex align-items-center gap-2 flex-wrap">
                 <span class="badge event-type-{{ event.event_type }}">{{ event.get_event_type_display }}</span>
-                {% if event.is_mine %}<span class="badge {% if event.calendar.is_mine %}text-bg-primary{% else %}text-bg-secondary{% endif %}">Mine</span>{% endif %}
+                {% if event.calendar.is_mine %}<span class="badge text-bg-primary">Mine</span>{% endif %}
                 {% if event.status != 'confirmed' %}<span class="badge text-bg-warning">{{ event.get_status_display }}</span>{% endif %}
               </div>
               {% if event.schedule_conflict %}

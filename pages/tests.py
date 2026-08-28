@@ -262,9 +262,11 @@ class PageTests(TestCase):
             name="League schedule",
             cal_url="https://example.com/league.ics",
         )
+        # Ownership filtering follows the calendar, not a team-name match stored
+        # on an individual event.
         for calendar, title, is_mine in (
-            (mine, "My game", True),
-            (other, "Other game", False),
+            (mine, "My game", False),
+            (other, "Other game", True),
         ):
             CalendarEvent.objects.create(
                 calendar=calendar,
@@ -545,7 +547,7 @@ class PageTests(TestCase):
             )
 
         response = self.client.get(
-            reverse("home"), {"view": "games", "scope": "mine"}
+            reverse("home"), {"view": "games", "scope": "all"}
         )
         events = list(response.context["events"])
 

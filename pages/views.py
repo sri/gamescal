@@ -323,9 +323,9 @@ class HomePageView(TemplateView):
         requested_view = self.request.GET.get("view")
         default_week_events = week_events
         if event_scope == "mine":
-            default_week_events = default_week_events.filter(is_mine=True)
+            default_week_events = default_week_events.filter(calendar__is_mine=True)
         elif event_scope == "others":
-            default_week_events = default_week_events.filter(is_mine=False)
+            default_week_events = default_week_events.filter(calendar__is_mine=False)
 
         if requested_view in {"games", "practices", "all"}:
             event_view = requested_view
@@ -338,9 +338,9 @@ class HomePageView(TemplateView):
 
         if event_view in {"games", "all"}:
             if event_scope == "mine":
-                events = events.filter(is_mine=True)
+                events = events.filter(calendar__is_mine=True)
             elif event_scope == "others":
-                events = events.filter(is_mine=False)
+                events = events.filter(calendar__is_mine=False)
 
         if event_view == "games" or (
             event_view == "all" and all_event_type == "games"
