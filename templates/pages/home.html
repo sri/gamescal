@@ -49,13 +49,15 @@
       <div class="small fw-semibold text-uppercase text-body-secondary mb-2">Links</div>
       {% for link in saved_links %}
         <div class="saved-link-row">
-          <a class="saved-link-url" href="{{ link.url }}" target="_blank" rel="noopener">{{ link.url }} <span aria-hidden="true">↗</span></a>
+          <a class="saved-link-url" href="{{ link.url }}" target="_blank" rel="noopener" title="{{ link.url }}">{% if link.name %}{{ link.name }}{% else %}{{ link.url }}{% endif %} <span aria-hidden="true">↗</span></a>
           <details class="saved-link-edit">
             <summary>Edit</summary>
             <form method="post" action="{% url 'saved_link_edit' link.pk %}" class="saved-link-edit-form">
               {% csrf_token %}
-              <label class="visually-hidden" for="saved-link-{{ link.pk }}">Edit URL</label>
-              <input class="form-control form-control-sm" id="saved-link-{{ link.pk }}" name="url" type="url" value="{{ link.url }}" maxlength="2000" required>
+              <label class="visually-hidden" for="saved-link-name-{{ link.pk }}">Edit name</label>
+              <input class="form-control form-control-sm" id="saved-link-name-{{ link.pk }}" name="name" type="text" value="{{ link.name }}" maxlength="255" placeholder="Name (optional)">
+              <label class="visually-hidden" for="saved-link-url-{{ link.pk }}">Edit URL</label>
+              <input class="form-control form-control-sm" id="saved-link-url-{{ link.pk }}" name="url" type="url" value="{{ link.url }}" maxlength="2000" required>
               <button class="btn btn-sm btn-primary" type="submit">Save</button>
             </form>
           </details>
@@ -69,6 +71,7 @@
       {% endfor %}
       <form method="post" action="{% url 'saved_link_add' %}" class="saved-link-add-form">
         {% csrf_token %}
+        {{ saved_link_form.name }}
         {{ saved_link_form.url }}
         <button class="btn btn-outline-primary text-nowrap" type="submit">Add URL</button>
       </form>
@@ -220,4 +223,18 @@
     </div>
   {% endif %}
 </section>
+
+{% if saved_links %}
+<section class="page-saved-links my-5" aria-labelledby="saved-links-heading">
+  <h2 class="h6 text-uppercase text-body-secondary mb-3" id="saved-links-heading">Links</h2>
+  <nav class="page-saved-link-list" aria-label="Saved links">
+    {% for link in saved_links %}
+      <a class="page-saved-link" href="{{ link.url }}" target="_blank" rel="noopener" title="{{ link.url }}">
+        <span>{% if link.name %}{{ link.name }}{% else %}{{ link.url }}{% endif %}</span>
+        <span aria-hidden="true">↗</span>
+      </a>
+    {% endfor %}
+  </nav>
+</section>
+{% endif %}
 {% endblock content %}

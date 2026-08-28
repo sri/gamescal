@@ -23,6 +23,7 @@ class Calendar(models.Model):
 
 
 class SavedLink(models.Model):
+    name = models.CharField(max_length=255, blank=True)
     url = models.URLField(max_length=2000, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -31,7 +32,7 @@ class SavedLink(models.Model):
         ordering = ["url"]
 
     def __str__(self):
-        return self.url
+        return self.name or self.url
 
 
 class CalendarEvent(models.Model):

@@ -178,9 +178,51 @@ a {
 }
 
 .saved-link-add-form {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.6fr) minmax(12rem, 1.4fr) auto;
   gap: 0.5rem;
   margin-top: 0.75rem;
+}
+
+.page-saved-link-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.page-saved-link {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.65rem;
+  color: var(--bs-body-color);
+  background: var(--bs-tertiary-bg);
+  text-decoration: none;
+}
+
+.page-saved-link span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page-saved-link:hover {
+  border-color: var(--bs-primary-border-subtle);
+  color: var(--bs-primary-text-emphasis);
+  background: var(--bs-primary-bg-subtle);
+}
+
+@media (max-width: 575.98px) {
+  .saved-link-add-form {
+    grid-template-columns: 1fr;
+  }
+
+  .saved-link-add-form .btn {
+    width: 100%;
+  }
 }
 
 .calendar-stats {

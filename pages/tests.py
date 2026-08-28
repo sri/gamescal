@@ -800,7 +800,10 @@ class PageTests(TestCase):
     def test_saved_urls_can_be_added_opened_edited_and_deleted_inline(self):
         add = self.client.post(
             reverse("saved_link_add"),
-            {"url": "https://example.com/team-schedule"},
+            {
+                "name": "Team schedule",
+                "url": "https://example.com/team-schedule",
+            },
         )
 
         self.assertRedirects(
@@ -815,7 +818,11 @@ class PageTests(TestCase):
         self.assertContains(
             home,
             'href="https://example.com/team-schedule" target="_blank"',
+            count=2,
         )
+        self.assertContains(home, "Team schedule", count=3)
+        self.assertContains(home, 'class="page-saved-links my-5"')
+        self.assertNotContains(home, ">https://example.com/team-schedule <")
         self.assertContains(
             home, reverse("saved_link_edit", kwargs={"pk": link.pk})
         )
@@ -825,11 +832,15 @@ class PageTests(TestCase):
 
         edit = self.client.post(
             reverse("saved_link_edit", kwargs={"pk": link.pk}),
-            {"url": "https://example.com/updated-schedule"},
+            {
+                "name": "Updated schedule",
+                "url": "https://example.com/updated-schedule",
+            },
         )
 
         self.assertEqual(edit.status_code, 302)
         link.refresh_from_db()
+        self.assertEqual(link.name, "Updated schedule")
         self.assertEqual(link.url, "https://example.com/updated-schedule")
 
         delete = self.client.post(
@@ -838,6 +849,14 @@ class PageTests(TestCase):
 
         self.assertEqual(delete.status_code, 302)
         self.assertFalse(SavedLink.objects.exists())
+
+    def test_saved_url_without_a_name_displays_its_url_at_the_bottom(self):
+        SavedLink.objects.create(url="https://example.com/unnamed")
+
+        response = self.client.get(reverse("home"))
+
+        self.assertContains(response, ">https://example.com/unnamed</span>")
+        self.assertContains(response, 'aria-label="Saved links"')
 
     def test_saved_url_actions_require_post(self):
         link = SavedLink.objects.create(url="https://example.com/schedule")

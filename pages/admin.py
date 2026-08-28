@@ -13,8 +13,8 @@ from .models import (
 
 @admin.register(SavedLink)
 class SavedLinkAdmin(admin.ModelAdmin):
-    list_display = ("url", "updated_at")
-    search_fields = ("url",)
+    list_display = ("name", "url", "updated_at")
+    search_fields = ("name", "url")
     readonly_fields = ("created_at", "updated_at")
 
 

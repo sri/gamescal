@@ -49,8 +49,15 @@ class CalendarEditForm(forms.ModelForm):
 class SavedLinkForm(forms.ModelForm):
     class Meta:
         model = SavedLink
-        fields = ("url",)
+        fields = ("name", "url")
         widgets = {
+            "name": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Name (optional)",
+                    "aria-label": "Name (optional)",
+                }
+            ),
             "url": forms.URLInput(
                 attrs={
                     "class": "form-control",
@@ -58,7 +65,7 @@ class SavedLinkForm(forms.ModelForm):
                     "autocomplete": "url",
                     "aria-label": "URL",
                 }
-            )
+            ),
         }
 
 
