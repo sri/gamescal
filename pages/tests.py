@@ -250,6 +250,62 @@ class PageTests(TestCase):
         self.assertNotContains(response, "Hidden game")
 
     @patch("pages.views.timezone.now", return_value=TEST_NOW)
+    def test_games_and_all_can_filter_by_ownership_and_active_calendars(
+        self, _mocked_now
+    ):
+        mine = Calendar.objects.create(
+            name="Coach schedule",
+            cal_url="https://example.com/coach.ics",
+            is_mine=True,
+        )
+        other = Calendar.objects.create(
+            name="League schedule",
+            cal_url="https://example.com/league.ics",
+        )
+        for calendar, title, is_mine in (
+            (mine, "My game", True),
+            (other, "Other game", False),
+        ):
+            CalendarEvent.objects.create(
+                calendar=calendar,
+                external_uid=title,
+                title=title,
+                starts_at=TEST_NOW + timedelta(days=1),
+                ends_at=TEST_NOW + timedelta(days=1, hours=1),
+                event_type=CalendarEvent.EventType.GAME,
+                is_mine=is_mine,
+            )
+
+        mine_only = self.client.get(
+            reverse("home"), {"view": "games", "scope": "mine"}
+        )
+        self.assertContains(mine_only, "My game")
+        self.assertNotContains(mine_only, "Other game")
+        self.assertContains(mine_only, "Apply Calendars")
+        self.assertContains(mine_only, "Coach schedule · Mine")
+
+        others_only = self.client.get(
+            reverse("home"), {"view": "all", "scope": "others"}
+        )
+        self.assertNotContains(others_only, "My game")
+        self.assertContains(others_only, "Other game")
+
+        selected_league = self.client.get(
+            reverse("home"),
+            {
+                "view": "games",
+                "scope": "all",
+                "calendar_filter": "1",
+                "calendar": str(other.pk),
+            },
+        )
+        self.assertNotContains(selected_league, "My game")
+        self.assertContains(selected_league, "Other game")
+        self.assertEqual(
+            selected_league.context["selected_calendar_ids"], {other.pk}
+        )
+
+    @patch("pages.views.timezone.now", return_value=TEST_NOW)
     def test_event_calendar_link_falls_back_to_feed_url(self, _mocked_now):
         calendar = Calendar.objects.create(
             name="Feed only", cal_url="https://example.com/fallback.ics"
@@ -451,6 +507,52 @@ class PageTests(TestCase):
         self.assertContains(response, "10 min buffer")
 
     @patch("pages.views.timezone.now", return_value=TEST_NOW)
+    def test_matching_games_from_different_calendars_warn_when_schedules_disagree(
+        self, _mocked_now
+    ):
+        coach = Calendar.objects.create(
+            name="Coach",
+            cal_url="https://example.com/coach-conflict.ics",
+            is_mine=True,
+            team_aliases="Falcons",
+        )
+        league = Calendar.objects.create(
+            name="League",
+            cal_url="https://example.com/league-conflict.ics",
+            team_aliases="Phoenix Falcons\nFalcons",
+        )
+        first_start = TEST_NOW + timedelta(days=1)
+        for calendar, starts_at, location in (
+            (coach, first_start, "Central Stadium"),
+            (league, first_start + timedelta(hours=3), "North Field"),
+        ):
+            CalendarEvent.objects.create(
+                calendar=calendar,
+                external_uid=f"conflict-{calendar.pk}",
+                title="Falcons vs Bears",
+                team1="Falcons",
+                team2="Bears",
+                starts_at=starts_at,
+                ends_at=starts_at + timedelta(minutes=50),
+                event_type=CalendarEvent.EventType.GAME,
+                is_mine=True,
+                location=location,
+            )
+
+        response = self.client.get(
+            reverse("home"), {"view": "games", "scope": "mine"}
+        )
+        events = list(response.context["events"])
+
+        self.assertEqual(len(events), 2)
+        self.assertTrue(all(event.schedule_conflict for event in events))
+        self.assertTrue(all("Coach:" in event.schedule_conflict_details for event in events))
+        self.assertTrue(all("League:" in event.schedule_conflict_details for event in events))
+        self.assertContains(response, "Schedule conflict", count=4)
+        self.assertContains(response, "Central Stadium")
+        self.assertContains(response, "North Field")
+
+    @patch("pages.views.timezone.now", return_value=TEST_NOW)
     def test_game_gaps_and_travel_are_hidden_between_different_days(
         self, _mocked_now
     ):
@@ -536,6 +638,8 @@ class PageTests(TestCase):
                 "name": "",
                 "cal_url": "https://example.com/schedule.ics",
                 "website_url": "https://example.com/league",
+                "is_mine": "on",
+                "team_aliases": "Falcons",
             },
         )
 
@@ -557,7 +661,10 @@ class PageTests(TestCase):
         self.assertRedirects(confirm, reverse("home"))
         calendar = Calendar.objects.get()
         self.assertEqual(calendar.name, "City League")
+        self.assertTrue(calendar.is_mine)
+        self.assertEqual(calendar.team_aliases, "Falcons")
         self.assertEqual(calendar.events.get().team1, "Falcons")
+        self.assertTrue(calendar.events.get().is_mine)
         self.assertIsNotNone(calendar.last_synced_at)
 
     @patch("pages.views.fetch_and_parse_calendar")
@@ -578,7 +685,9 @@ class PageTests(TestCase):
         self, fetch
     ):
         calendar = Calendar.objects.create(
-            name="League", cal_url="https://example.com/schedule.ics"
+            name="League",
+            cal_url="https://example.com/schedule.ics",
+            team_aliases="Falcons",
         )
         CalendarEvent.objects.create(
             calendar=calendar,
@@ -624,6 +733,7 @@ class PageTests(TestCase):
         )
         refreshed_event = calendar.events.get(title="Falcons vs Bears")
         self.assertEqual(refreshed_event.event_type, CalendarEvent.EventType.PRACTICE)
+        self.assertTrue(refreshed_event.is_mine)
 
     @patch("pages.views.fetch_and_parse_calendar")
     def test_refresh_keeps_old_events_when_download_fails(self, fetch):
@@ -907,6 +1017,49 @@ class PageTests(TestCase):
         self.assertContains(response, "Replace All Events")
         self.assertContains(response, "Classification rules are preserved.")
         self.assertContains(response, "Manage Classification Rules")
+
+    def test_calendar_edit_reclassifies_existing_events_from_team_names(self):
+        calendar = Calendar.objects.create(
+            name="League", cal_url="https://example.com/team-matching.ics"
+        )
+        matching = CalendarEvent.objects.create(
+            calendar=calendar,
+            external_uid="falcons-game",
+            title="Phoenix Falcons vs Bears",
+            team1="Phoenix Falcons",
+            team2="Bears",
+            starts_at=timezone.now() + timedelta(days=1),
+            ends_at=timezone.now() + timedelta(days=1, hours=1),
+            event_type=CalendarEvent.EventType.GAME,
+        )
+        unrelated = CalendarEvent.objects.create(
+            calendar=calendar,
+            external_uid="wheatland-game",
+            title="Wheatland vs Bears",
+            team1="Wheatland",
+            team2="Bears",
+            starts_at=timezone.now() + timedelta(days=2),
+            ends_at=timezone.now() + timedelta(days=2, hours=1),
+            event_type=CalendarEvent.EventType.GAME,
+        )
+
+        response = self.client.post(
+            reverse("calendar_edit", kwargs={"pk": calendar.pk}),
+            {
+                "name": calendar.name,
+                "cal_url": calendar.cal_url,
+                "website_url": "",
+                "team_aliases": "Falcons",
+            },
+        )
+
+        self.assertRedirects(
+            response, reverse("calendar_edit", kwargs={"pk": calendar.pk})
+        )
+        matching.refresh_from_db()
+        unrelated.refresh_from_db()
+        self.assertTrue(matching.is_mine)
+        self.assertFalse(unrelated.is_mine)
 
     def test_calendar_edit_updates_details(self):
         calendar = Calendar.objects.create(

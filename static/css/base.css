@@ -49,6 +49,72 @@ a {
   outline: 0;
 }
 
+.calendar-form input[type="checkbox"] {
+  display: inline-block;
+  width: auto;
+}
+
+.event-source-filters {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.75rem;
+  background: var(--bs-tertiary-bg);
+}
+
+.event-scope-tabs {
+  flex: 0 0 auto;
+}
+
+.event-calendar-filter {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.event-calendar-options {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.event-calendar-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 999px;
+  background: var(--bs-body-bg);
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.event-calendar-option:has(input:checked) {
+  border-color: var(--bs-primary-border-subtle);
+  color: var(--bs-primary-text-emphasis);
+  background: var(--bs-primary-bg-subtle);
+}
+
+.schedule-conflict {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  color: var(--bs-danger-text-emphasis);
+  font-size: 0.75rem;
+}
+
+.schedule-conflict-details {
+  line-height: 1.35;
+}
+
 .calendar-collapse-toggle {
   display: flex;
   width: 100%;
@@ -185,6 +251,20 @@ a {
 }
 
 @media (max-width: 575.98px) {
+  .event-source-filters,
+  .event-calendar-filter {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .event-calendar-options {
+    justify-content: flex-start;
+  }
+
+  .event-calendar-filter .btn {
+    width: 100%;
+  }
+
   .saved-link-add-form {
     grid-template-columns: 1fr;
   }

@@ -20,16 +20,23 @@ class SavedLinkAdmin(admin.ModelAdmin):
 
 class CalendarEventInline(admin.TabularInline):
     model = CalendarEvent
-    fields = ("title", "starts_at", "location", "event_type", "status")
+    fields = ("title", "starts_at", "location", "event_type", "is_mine", "status")
     extra = 0
     show_change_link = True
 
 
 @admin.register(Calendar)
 class CalendarAdmin(admin.ModelAdmin):
-    list_display = ("name", "is_active", "timezone", "last_synced_at", "updated_at")
-    list_filter = ("is_active", "source_format")
-    search_fields = ("name", "cal_url", "website_url")
+    list_display = (
+        "name",
+        "is_active",
+        "is_mine",
+        "timezone",
+        "last_synced_at",
+        "updated_at",
+    )
+    list_filter = ("is_active", "is_mine", "source_format")
+    search_fields = ("name", "cal_url", "website_url", "team_aliases")
     readonly_fields = ("last_synced_at", "created_at", "updated_at")
     inlines = (CalendarEventInline,)
 
@@ -42,9 +49,10 @@ class CalendarEventAdmin(admin.ModelAdmin):
         "starts_at",
         "location",
         "event_type",
+        "is_mine",
         "status",
     )
-    list_filter = ("calendar", "event_type", "status", "is_all_day")
+    list_filter = ("calendar", "event_type", "is_mine", "status", "is_all_day")
     search_fields = ("title", "description", "location", "team1", "team2")
     date_hierarchy = "starts_at"
     readonly_fields = ("created_at", "updated_at")

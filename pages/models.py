@@ -8,6 +8,16 @@ class Calendar(models.Model):
     cal_url = models.URLField("calendar URL", max_length=2000, unique=True)
     website_url = models.URLField(max_length=2000, blank=True)
     is_active = models.BooleanField(default=True)
+    is_mine = models.BooleanField(
+        default=False,
+        help_text="Treat every event from this calendar as mine.",
+    )
+    team_aliases = models.TextField(
+        blank=True,
+        help_text=(
+            "Team names from this feed that should count as mine, one per line."
+        ),
+    )
     timezone = models.CharField(max_length=64, default="America/Phoenix")
     source_format = models.CharField(max_length=20, default="ics", editable=False)
     last_synced_at = models.DateTimeField(null=True, blank=True)
@@ -68,6 +78,7 @@ class CalendarEvent(models.Model):
     event_type = models.CharField(
         max_length=20, choices=EventType.choices, default=EventType.OTHER, db_index=True
     )
+    is_mine = models.BooleanField(default=False, db_index=True)
     raw_data = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

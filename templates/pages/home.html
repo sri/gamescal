@@ -26,6 +26,7 @@
               {% else %}
                 <span class="badge text-bg-secondary">Inactive</span>
               {% endif %}
+              {% if calendar.is_mine %}<span class="badge text-bg-primary">Mine</span>{% endif %}
               {% if calendar.last_sync_error %}
                 <span class="badge text-bg-danger" title="{{ calendar.last_sync_error }}">Sync error</span>
               {% endif %}
@@ -95,13 +96,16 @@
 <section aria-labelledby="events-heading">
   <div class="event-filters d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
     <nav class="nav nav-pills event-filter-tabs" aria-label="Event views">
-      <a class="nav-link {% if event_view == 'games' %}active{% endif %}" href="?view=games{% if request_debug %}&amp;debug=1{% endif %}">Games</a>
-      <a class="nav-link {% if event_view == 'practices' %}active{% endif %}" href="?view=practices{% if request_debug %}&amp;debug=1{% endif %}">Practices</a>
-      <a class="nav-link {% if event_view == 'all' %}active{% endif %}" href="?view=all{% if request_debug %}&amp;debug=1{% endif %}">All</a>
+      <a class="nav-link {% if event_view == 'games' %}active{% endif %}" href="{{ event_view_urls.games }}">Games</a>
+      <a class="nav-link {% if event_view == 'practices' %}active{% endif %}" href="{{ event_view_urls.practices }}">Practices</a>
+      <a class="nav-link {% if event_view == 'all' %}active{% endif %}" href="{{ event_view_urls.all }}">All</a>
     </nav>
     {% if event_view == 'all' %}
       <form class="event-all-filter" method="get">
         <input type="hidden" name="view" value="all">
+        <input type="hidden" name="scope" value="{{ event_scope }}">
+        <input type="hidden" name="calendar_filter" value="1">
+        {% for calendar in selected_calendars %}<input type="hidden" name="calendar" value="{{ calendar.pk }}">{% endfor %}
         {% if request_debug %}<input type="hidden" name="debug" value="1">{% endif %}
         <label class="visually-hidden" for="all-event-type">Filter all events by type</label>
         <select class="form-select form-select-sm" id="all-event-type" name="type" onchange="this.form.submit()">
@@ -113,6 +117,39 @@
       </form>
     {% endif %}
   </div>
+
+  {% if active_calendars and event_view != 'practices' %}
+    <div class="event-source-filters mb-3">
+      <nav class="nav nav-pills event-scope-tabs" aria-label="Calendar ownership">
+        <a class="nav-link {% if event_scope == 'all' %}active{% endif %}" href="{{ event_scope_urls.all }}">All</a>
+        <a class="nav-link {% if event_scope == 'mine' %}active{% endif %}" href="{{ event_scope_urls.mine }}">Mine</a>
+        <a class="nav-link {% if event_scope == 'others' %}active{% endif %}" href="{{ event_scope_urls.others }}">Others</a>
+      </nav>
+      <form method="get" class="event-calendar-filter">
+        <input type="hidden" name="view" value="{{ event_view }}">
+        <input type="hidden" name="scope" value="{{ event_scope }}">
+        <input type="hidden" name="calendar_filter" value="1">
+        {% if event_view == 'all' %}<input type="hidden" name="type" value="{{ all_event_type }}">{% endif %}
+        {% if request_debug %}<input type="hidden" name="debug" value="1">{% endif %}
+        <fieldset>
+          <legend class="visually-hidden">Active calendars to display</legend>
+          <div class="event-calendar-options">
+            {% for calendar in active_calendars %}
+              <label class="event-calendar-option">
+                <input type="checkbox" name="calendar" value="{{ calendar.pk }}"{% if calendar.pk in selected_calendar_ids %} checked{% endif %}>
+                <span>{{ calendar.name }}{% if calendar.is_mine %} · Mine{% endif %}</span>
+              </label>
+            {% endfor %}
+          </div>
+        </fieldset>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-outline-primary" type="submit">Apply Calendars</button>
+          <a class="btn btn-sm btn-link text-nowrap" href="{{ all_calendars_url }}">Select All</a>
+        </div>
+      </form>
+    </div>
+  {% endif %}
+
   <h2 class="visually-hidden" id="events-heading">Event list</h2>
   {% if events %}
     <div class="d-none d-md-block table-responsive event-table-wrap">
@@ -144,7 +181,14 @@
                   </div>
                   {% if event.team1 and event.team2 %}<div class="small text-body-secondary">{{ event.team1 }} vs {{ event.team2 }}</div>{% endif %}
                   <span class="badge event-type-{{ event.event_type }} mt-1">{{ event.get_event_type_display }}</span>
+                  {% if event.is_mine %}<span class="badge text-bg-primary mt-1">Mine</span>{% endif %}
                   {% if event.status != 'confirmed' %}<span class="badge text-bg-warning mt-1">{{ event.get_status_display }}</span>{% endif %}
+                  {% if event.schedule_conflict %}
+                    <div class="schedule-conflict mt-2" title="{{ event.schedule_conflict_details }}">
+                      <span class="badge text-bg-danger">⚠ Schedule conflict</span>
+                      <span class="schedule-conflict-details">{{ event.schedule_conflict_details }}</span>
+                    </div>
+                  {% endif %}
                   {% if event.game_gap_after %}
                     <span class="game-gap-badge {% if event.game_travel_tight %}game-gap-badge-tight{% endif %}">
                       <span>⏱ {{ event.game_gap_after }} between games</span>
@@ -193,8 +237,15 @@
               </h3>
               <div class="d-flex align-items-center gap-2 flex-wrap">
                 <span class="badge event-type-{{ event.event_type }}">{{ event.get_event_type_display }}</span>
+                {% if event.is_mine %}<span class="badge text-bg-primary">Mine</span>{% endif %}
                 {% if event.status != 'confirmed' %}<span class="badge text-bg-warning">{{ event.get_status_display }}</span>{% endif %}
               </div>
+              {% if event.schedule_conflict %}
+                <div class="schedule-conflict mt-2" title="{{ event.schedule_conflict_details }}">
+                  <span class="badge text-bg-danger">⚠ Schedule conflict</span>
+                  <span class="schedule-conflict-details">{{ event.schedule_conflict_details }}</span>
+                </div>
+              {% endif %}
             </div>
 
             {% if event.location %}

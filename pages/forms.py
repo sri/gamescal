@@ -27,6 +27,23 @@ class CalendarImportForm(forms.Form):
         help_text="Optional link to the calendar's website.",
         widget=forms.URLInput(attrs={"placeholder": "https://example.com"}),
     )
+    is_mine = forms.BooleanField(
+        required=False,
+        label="My calendar",
+        help_text="Treat every event from this calendar as mine.",
+    )
+    team_aliases = forms.CharField(
+        required=False,
+        label="My team names",
+        help_text="Team names in this feed that should count as mine, one per line.",
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control",
+                "rows": 3,
+                "placeholder": "Falcons 7 Black\nPhoenix Falcons",
+            }
+        ),
+    )
 
     def clean_cal_url(self):
         cal_url = self.cleaned_data["cal_url"]
@@ -38,11 +55,23 @@ class CalendarImportForm(forms.Form):
 class CalendarEditForm(forms.ModelForm):
     class Meta:
         model = Calendar
-        fields = ("name", "cal_url", "website_url")
-        labels = {"cal_url": "Calendar URL", "website_url": "Website URL"}
+        fields = ("name", "cal_url", "website_url", "is_mine", "team_aliases")
+        labels = {
+            "cal_url": "Calendar URL",
+            "website_url": "Website URL",
+            "is_mine": "My calendar",
+            "team_aliases": "My team names",
+        }
         widgets = {
             "cal_url": forms.URLInput(attrs={"autocomplete": "url"}),
             "website_url": forms.URLInput(attrs={"autocomplete": "url"}),
+            "team_aliases": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 3,
+                    "placeholder": "Falcons 7 Black\nPhoenix Falcons",
+                }
+            ),
         }
 
 
