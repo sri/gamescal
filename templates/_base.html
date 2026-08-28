@@ -37,12 +37,17 @@
     {% endblock content %}
   </main>
 
-  {% if request.gamescal_access_granted %}
+  {% if request.gamescal_access_granted or build_info %}
   <footer class="container shared-access-footer">
-    <form method="post" action="{% url 'shared_access_lock' %}">
-      {% csrf_token %}
-      <button class="btn btn-sm btn-link text-body-secondary" type="submit">Lock this device</button>
-    </form>
+    {% if build_info %}
+      <small class="build-version"><code>{{ build_info.sha }}</code>:{{ build_info.committed_date|date:"Y-m-d" }}({{ build_info.committed_at|timesince }} ago)</small>
+    {% endif %}
+    {% if request.gamescal_access_granted %}
+      <form method="post" action="{% url 'shared_access_lock' %}">
+        {% csrf_token %}
+        <button class="btn btn-sm btn-link text-body-secondary" type="submit">Lock this device</button>
+      </form>
+    {% endif %}
   </footer>
   {% endif %}
 

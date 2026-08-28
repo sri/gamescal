@@ -1,9 +1,15 @@
+import os
+import subprocess
+from datetime import datetime, timezone
+from unittest.mock import patch
+
 from django.contrib.auth.hashers import make_password
 from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from gamescal.access import ACCESS_SESSION_KEY, MAX_FAILED_ATTEMPTS_PER_MINUTE
+from gamescal.context_processors import _build_info, build_info
 
 TEST_PASSWORD = "shared-calendar-password"
 TEST_PASSWORD_HASH = make_password(TEST_PASSWORD)
@@ -147,3 +153,47 @@ class DisabledSharedAccessTests(TestCase):
         response = self.client.get(reverse("home"))
 
         self.assertEqual(response.status_code, 200)
+
+
+class BuildInfoTests(TestCase):
+    def tearDown(self):
+        _build_info.cache_clear()
+
+    @patch("gamescal.context_processors.subprocess.run")
+    def test_build_info_reads_the_current_git_commit(self, run):
+        run.return_value = subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout="b4c63e8\x002026-08-26T18:53:35-07:00\n",
+        )
+        _build_info.cache_clear()
+
+        with patch.dict(
+            os.environ,
+            {"GIT_COMMIT_SHA": "", "GIT_COMMIT_DATE": ""},
+        ):
+            context = build_info(None)
+
+        self.assertEqual(context["build_info"]["sha"], "b4c63e8")
+        self.assertEqual(
+            context["build_info"]["committed_at"].isoformat(),
+            "2026-08-26T18:53:35-07:00",
+        )
+        self.assertEqual(
+            context["build_info"]["committed_date"].isoformat(), "2026-08-26"
+        )
+
+    @override_settings(GAMESCAL_ACCESS_PASSWORD_HASH="")
+    @patch("gamescal.context_processors._build_info")
+    def test_footer_shows_the_commit_sha_date_and_relative_age(self, info):
+        committed_at = datetime(2026, 8, 26, tzinfo=timezone.utc)
+        info.return_value = {
+            "sha": "b4c63e8",
+            "committed_at": committed_at,
+            "committed_date": committed_at.date(),
+        }
+
+        response = self.client.get(reverse("home"))
+
+        self.assertContains(response, "<code>b4c63e8</code>:2026-08-26(")
+        self.assertContains(response, " ago)</small>")
