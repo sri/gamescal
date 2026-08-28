@@ -568,7 +568,9 @@ class PageTests(TestCase):
         self.assertEqual(Calendar.objects.count(), 0)
 
     @patch("pages.views.fetch_and_parse_calendar")
-    def test_refresh_replaces_events(self, fetch):
+    def test_refresh_deletes_old_events_then_previews_and_adds_approved_events(
+        self, fetch
+    ):
         calendar = Calendar.objects.create(
             name="League", cal_url="https://example.com/schedule.ics"
         )
@@ -592,10 +594,56 @@ class PageTests(TestCase):
             reverse("calendar_refresh", kwargs={"pk": calendar.pk})
         )
 
-        self.assertRedirects(response, reverse("home"))
-        self.assertFalse(calendar.events.filter(title="Old game").exists())
+        token = response.url.split("/")[-2]
+        self.assertRedirects(
+            response,
+            reverse("calendar_preview", kwargs={"token": token}),
+        )
+        self.assertEqual(calendar.events.count(), 0)
+
+        preview = self.client.get(response.url)
+        self.assertContains(preview, "Replacement preview")
+        self.assertContains(preview, "Falcons vs Bears")
+        self.assertContains(preview, "Practice")
+        self.assertContains(preview, "Approve &amp; Add Events", count=2)
+        self.assertContains(preview, "The previous events have been deleted.")
+        self.assertEqual(calendar.events.count(), 0)
+
+        confirm = self.client.post(
+            reverse("calendar_confirm", kwargs={"token": token})
+        )
+
+        self.assertRedirects(
+            confirm, reverse("calendar_edit", kwargs={"pk": calendar.pk})
+        )
         refreshed_event = calendar.events.get(title="Falcons vs Bears")
         self.assertEqual(refreshed_event.event_type, CalendarEvent.EventType.PRACTICE)
+
+    @patch("pages.views.fetch_and_parse_calendar")
+    def test_refresh_keeps_old_events_when_download_fails(self, fetch):
+        calendar = Calendar.objects.create(
+            name="League", cal_url="https://example.com/broken-refresh.ics"
+        )
+        old_event = CalendarEvent.objects.create(
+            calendar=calendar,
+            external_uid="old",
+            title="Old game",
+            starts_at=timezone.now(),
+            ends_at=timezone.now() + timedelta(hours=1),
+        )
+        fetch.side_effect = CalendarImportError("Feed unavailable.")
+
+        response = self.client.post(
+            reverse("calendar_refresh", kwargs={"pk": calendar.pk}),
+            {"next": "edit"},
+            follow=True,
+        )
+
+        self.assertRedirects(
+            response, reverse("calendar_edit", kwargs={"pk": calendar.pk})
+        )
+        self.assertTrue(calendar.events.filter(pk=old_event.pk).exists())
+        self.assertContains(response, "Feed unavailable.")
 
     @patch("pages.views.fetch_and_parse_calendar")
     def test_refresh_all_replaces_events_in_every_calendar(self, fetch):

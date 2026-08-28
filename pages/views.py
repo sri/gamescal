@@ -439,6 +439,7 @@ def add_calendar(request):
                 token = secrets.token_urlsafe(24)
                 request.session[PREVIEW_SESSION_KEY] = {
                     "token": token,
+                    "mode": "add",
                     "name": form.cleaned_data["name"],
                     "cal_url": form.cleaned_data["cal_url"],
                     "website_url": form.cleaned_data["website_url"],
@@ -460,6 +461,13 @@ def _preview_from_session(request, token):
 
 def calendar_preview(request, token):
     preview, result = _preview_from_session(request, token)
+    is_replacement = preview.get("mode") == "replace"
+    if is_replacement:
+        calendar = get_object_or_404(Calendar, pk=preview.get("calendar_id"))
+        cancel_url = reverse("calendar_edit", kwargs={"pk": calendar.pk})
+    else:
+        cancel_url = reverse("calendar_add")
+
     _annotate_game_gaps(result.events)
     _annotate_game_directions(result.events)
     _annotate_travel_times(result.events)
@@ -472,6 +480,8 @@ def calendar_preview(request, token):
             "cal_url": preview["cal_url"],
             "website_url": preview["website_url"],
             "result": result,
+            "is_replacement": is_replacement,
+            "cancel_url": cancel_url,
         },
     )
 
@@ -502,6 +512,16 @@ def _event_model(calendar, event, rules=()):
 @require_POST
 def confirm_calendar(request, token):
     preview, result = _preview_from_session(request, token)
+    if preview.get("mode") == "replace":
+        calendar = get_object_or_404(Calendar, pk=preview.get("calendar_id"))
+        _replace_calendar_events(calendar, result)
+        request.session.pop(PREVIEW_SESSION_KEY, None)
+        messages.success(
+            request,
+            f'Added {len(result.events)} approved events to “{calendar.name}”.',
+        )
+        return redirect("calendar_edit", pk=calendar.pk)
+
     try:
         with transaction.atomic():
             calendar = Calendar.objects.create(
@@ -597,14 +617,24 @@ def refresh_calendar(request, pk):
         calendar.last_sync_error = str(exc)
         calendar.save(update_fields=["last_sync_error", "updated_at"])
         messages.error(request, f'Could not refresh “{calendar.name}”: {exc}')
-    else:
-        _replace_calendar_events(calendar, result)
-        messages.success(
-            request,
-            f'Replaced all events in “{calendar.name}” with '
-            f"{len(result.events)} fresh events.",
-        )
-    return _redirect_after_calendar_action(request, calendar)
+        return _redirect_after_calendar_action(request, calendar)
+
+    rules = list(calendar.event_rules.filter(is_active=True))
+    for event in result.events:
+        event.event_type = classify_event(event, rules)
+
+    token = secrets.token_urlsafe(24)
+    request.session[PREVIEW_SESSION_KEY] = {
+        "token": token,
+        "mode": "replace",
+        "calendar_id": calendar.pk,
+        "name": calendar.name,
+        "cal_url": calendar.cal_url,
+        "website_url": calendar.website_url,
+        "result": result.to_session(),
+    }
+    calendar.events.all().delete()
+    return redirect("calendar_preview", token=token)
 
 
 @require_POST
