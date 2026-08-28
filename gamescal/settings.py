@@ -10,6 +10,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 GEOAPIFY_API_KEY = os.getenv("GEOAPIFY_API_KEY", "")
+SOURCE_REPOSITORY_URL = os.getenv(
+    "SOURCE_REPOSITORY_URL", "https://github.com/sri/gamescal"
+).rstrip("/")
 
 
 # Quick-start development settings - unsuitable for production

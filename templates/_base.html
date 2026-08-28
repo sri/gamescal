@@ -40,7 +40,7 @@
   {% if request.gamescal_access_granted or build_info %}
   <footer class="container shared-access-footer">
     {% if build_info %}
-      <small class="build-version"><code>{{ build_info.sha }}</code>:{{ build_info.committed_date|date:"Y-m-d" }}({{ build_info.committed_at|timesince }} ago)</small>
+      <small class="build-version"><a href="{{ build_info.commit_url }}" target="_blank" rel="noopener" title="View this commit on GitHub"><code>{{ build_info.sha }}</code>:{{ build_info.committed_date|date:"Y-m-d" }}</a>({{ build_info.committed_at|timesince }} ago)</small>
     {% endif %}
     {% if request.gamescal_access_granted %}
       <form method="post" action="{% url 'shared_access_lock' %}">

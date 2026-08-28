@@ -164,7 +164,10 @@ class BuildInfoTests(TestCase):
         run.return_value = subprocess.CompletedProcess(
             args=[],
             returncode=0,
-            stdout="b4c63e8\x002026-08-26T18:53:35-07:00\n",
+            stdout=(
+                "b4c63e8185d5b7355df48e7e0f6790dc173d40ce"
+                "\x002026-08-26T18:53:35-07:00\n"
+            ),
         )
         _build_info.cache_clear()
 
@@ -182,18 +185,28 @@ class BuildInfoTests(TestCase):
         self.assertEqual(
             context["build_info"]["committed_date"].isoformat(), "2026-08-26"
         )
+        self.assertEqual(
+            context["build_info"]["commit_url"],
+            "https://github.com/sri/gamescal/commit/"
+            "b4c63e8185d5b7355df48e7e0f6790dc173d40ce",
+        )
 
     @override_settings(GAMESCAL_ACCESS_PASSWORD_HASH="")
     @patch("gamescal.context_processors._build_info")
-    def test_footer_shows_the_commit_sha_date_and_relative_age(self, info):
+    def test_footer_links_the_commit_sha_and_date_to_github(self, info):
         committed_at = datetime(2026, 8, 26, tzinfo=timezone.utc)
         info.return_value = {
             "sha": "b4c63e8",
             "committed_at": committed_at,
             "committed_date": committed_at.date(),
+            "commit_url": "https://github.com/sri/gamescal/commit/full-sha",
         }
 
         response = self.client.get(reverse("home"))
 
-        self.assertContains(response, "<code>b4c63e8</code>:2026-08-26(")
+        self.assertContains(
+            response,
+            'href="https://github.com/sri/gamescal/commit/full-sha"',
+        )
+        self.assertContains(response, "<code>b4c63e8</code>:2026-08-26</a>(")
         self.assertContains(response, " ago)</small>")

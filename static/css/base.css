@@ -778,7 +778,16 @@ a {
 }
 
 .build-version,
+.build-version a,
 .build-version code {
   color: var(--bs-secondary-color);
   font-size: 0.75rem;
+}
+
+.build-version a {
+  text-decoration: none;
+}
+
+.build-version a:hover {
+  text-decoration: underline;
 }
