@@ -821,7 +821,7 @@ class PageTests(TestCase):
             count=2,
         )
         self.assertContains(home, "Team schedule", count=3)
-        self.assertContains(home, 'class="page-saved-links my-5"')
+        self.assertContains(home, 'class="footer-saved-links"')
         self.assertNotContains(home, ">https://example.com/team-schedule <")
         self.assertContains(
             home, reverse("saved_link_edit", kwargs={"pk": link.pk})
@@ -855,7 +855,10 @@ class PageTests(TestCase):
 
         response = self.client.get(reverse("home"))
 
-        self.assertContains(response, ">https://example.com/unnamed</span>")
+        self.assertContains(
+            response,
+            ">https://example.com/unnamed<span aria-hidden=\"true\">",
+        )
         self.assertContains(response, 'aria-label="Saved links"')
 
     def test_saved_url_actions_require_post(self):

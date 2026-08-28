@@ -223,18 +223,4 @@
     </div>
   {% endif %}
 </section>
-
-{% if saved_links %}
-<section class="page-saved-links my-5" aria-labelledby="saved-links-heading">
-  <h2 class="h6 text-uppercase text-body-secondary mb-3" id="saved-links-heading">Links</h2>
-  <nav class="page-saved-link-list" aria-label="Saved links">
-    {% for link in saved_links %}
-      <a class="page-saved-link" href="{{ link.url }}" target="_blank" rel="noopener" title="{{ link.url }}">
-        <span>{% if link.name %}{{ link.name }}{% else %}{{ link.url }}{% endif %}</span>
-        <span aria-hidden="true">↗</span>
-      </a>
-    {% endfor %}
-  </nav>
-</section>
-{% endif %}
 {% endblock content %}
