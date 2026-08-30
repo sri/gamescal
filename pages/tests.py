@@ -650,11 +650,22 @@ class PageTests(TestCase):
         self.assertEqual(events["Practice stop"].directions_origin, "")
         self.assertContains(response, "Directions from the previous game")
 
-    def test_about_page(self):
+    def test_about_page_offers_persistent_theme_choices(self):
         response = self.client.get(reverse("about"))
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "pages/about.html")
+        for label, value in (
+            ("Default", "default"),
+            ("Everforest", "everforest"),
+            ("Solarized Dark", "solarized-dark"),
+            ("Vantablack", "vantablack"),
+            ("Osaka Jade", "osaka-jade"),
+        ):
+            self.assertContains(response, label)
+            self.assertContains(response, f'data-theme-option="{value}"')
+        self.assertContains(response, "gamescal-theme")
+        self.assertContains(response, "official Omarchy manual")
 
     @patch("pages.views.fetch_and_parse_calendar")
     def test_preview_then_confirm_import(self, fetch):

@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="default" data-bs-theme="light">
 
 <head>
   <meta charset="utf-8">
@@ -9,6 +9,21 @@
   <title>{% block title %}Gamescal{% endblock title %}</title>
   <meta name="description" content="Gamescal">
   <meta name="author" content="">
+  <meta name="theme-color" content="#ffffff" id="theme-color-meta">
+  <script>
+    (() => {
+      const themes = ["default", "everforest", "solarized-dark", "vantablack", "osaka-jade"];
+      try {
+        const theme = localStorage.getItem("gamescal-theme") || "default";
+        if (themes.includes(theme)) {
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.dataset.bsTheme = theme === "default" ? "light" : "dark";
+        }
+      } catch (error) {
+        // Keep the default theme when browser storage is unavailable.
+      }
+    })();
+  </script>
   <link rel="shortcut icon" type="image/x-icon" href="{% static 'images/favicon.ico' %}">
 
   {% block css %}
@@ -52,10 +67,13 @@
       {% endif %}
     </div>
     {% if request.gamescal_access_granted %}
-      <form method="post" action="{% url 'shared_access_lock' %}">
-        {% csrf_token %}
-        <button class="btn btn-sm btn-link text-body-secondary" type="submit">Lock this device</button>
-      </form>
+      <div class="footer-actions">
+        <form method="post" action="{% url 'shared_access_lock' %}">
+          {% csrf_token %}
+          <button class="btn btn-sm btn-link text-body-secondary" type="submit">Lock this device</button>
+        </form>
+        <a class="btn btn-sm btn-link text-body-secondary" href="{% url 'about' %}">About</a>
+      </div>
     {% endif %}
   </footer>
   {% endif %}

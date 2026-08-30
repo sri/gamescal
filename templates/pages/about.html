@@ -1,7 +1,69 @@
 {% extends '_base.html' %}
 
-{% block title %}About page{% endblock %}
+{% block title %}About · Gamescal{% endblock %}
 
 {% block content %}
-<h1>About page</h1>
+<div class="page-narrow py-4">
+  <a class="back-link" href="{% url 'home' %}">← Back to events</a>
+
+  <section class="mt-3 mb-5" aria-labelledby="about-heading">
+    <div class="text-uppercase small fw-semibold text-primary mb-1">About</div>
+    <h1 id="about-heading">Gamescal</h1>
+    <p class="lead">A focused view of games, practices, travel time, and schedule differences across your calendars.</p>
+    <p class="text-body-secondary mb-0">Gamescal imports calendar feeds, keeps personal and league schedules distinguishable, and helps make busy game days easier to scan.</p>
+  </section>
+
+  <section aria-labelledby="theme-heading">
+    <div class="mb-3">
+      <div class="text-uppercase small fw-semibold text-primary mb-1">Appearance</div>
+      <h2 class="h3 mb-1" id="theme-heading">Theme</h2>
+      <p class="text-body-secondary mb-0">Choose a palette for Gamescal and its game colors. Your selection is saved on this device.</p>
+    </div>
+
+    <div class="theme-grid" role="group" aria-label="Choose a theme">
+      <button class="theme-option" type="button" data-theme-option="default" aria-pressed="false">
+        <span class="theme-swatches" aria-hidden="true">
+          <span style="--swatch: #ffffff"></span><span style="--swatch: #0d6efd"></span><span style="--swatch: #198754"></span><span style="--swatch: #ffc107"></span>
+        </span>
+        <span><strong>Default</strong><small>Gamescal’s current light palette</small></span>
+        <span class="theme-check" aria-hidden="true">✓</span>
+      </button>
+
+      <button class="theme-option" type="button" data-theme-option="everforest" aria-pressed="false">
+        <span class="theme-swatches" aria-hidden="true">
+          <span style="--swatch: #2d353b"></span><span style="--swatch: #7fbbb3"></span><span style="--swatch: #a7c080"></span><span style="--swatch: #dbbc7f"></span>
+        </span>
+        <span><strong>Everforest</strong><small>Soft forest greens and warm neutrals</small></span>
+        <span class="theme-check" aria-hidden="true">✓</span>
+      </button>
+
+      <button class="theme-option" type="button" data-theme-option="solarized-dark" aria-pressed="false">
+        <span class="theme-swatches" aria-hidden="true">
+          <span style="--swatch: #002b36"></span><span style="--swatch: #268bd2"></span><span style="--swatch: #859900"></span><span style="--swatch: #b58900"></span>
+        </span>
+        <span><strong>Solarized Dark</strong><small>Classic blue-green low-contrast palette</small></span>
+        <span class="theme-check" aria-hidden="true">✓</span>
+      </button>
+
+      <button class="theme-option" type="button" data-theme-option="vantablack" aria-pressed="false">
+        <span class="theme-swatches" aria-hidden="true">
+          <span style="--swatch: #000000"></span><span style="--swatch: #8d8d8d"></span><span style="--swatch: #b6b6b6"></span><span style="--swatch: #ffffff"></span>
+        </span>
+        <span><strong>Vantablack</strong><small>Pure black with monochrome accents</small></span>
+        <span class="theme-check" aria-hidden="true">✓</span>
+      </button>
+
+      <button class="theme-option" type="button" data-theme-option="osaka-jade" aria-pressed="false">
+        <span class="theme-swatches" aria-hidden="true">
+          <span style="--swatch: #111c18"></span><span style="--swatch: #509475"></span><span style="--swatch: #549e6a"></span><span style="--swatch: #e5c736"></span>
+        </span>
+        <span><strong>Osaka Jade</strong><small>Deep jade greens with warm highlights</small></span>
+        <span class="theme-check" aria-hidden="true">✓</span>
+      </button>
+    </div>
+    <p class="visually-hidden" id="theme-status" aria-live="polite"></p>
+
+    <p class="small text-body-secondary mt-3 mb-0">Everforest, Vantablack, and Osaka Jade use palettes from themes documented in the <a href="https://learn.omacom.io/2/the-omarchy-manual/52/themes" target="_blank" rel="noopener noreferrer">official Omarchy manual</a>; Solarized Dark uses the classic Solarized palette. More community themes are available at <a href="https://omarchythemes.com/" target="_blank" rel="noopener noreferrer">Omarchy Themes</a>.</p>
+  </section>
+</div>
 {% endblock content %}

@@ -64,6 +64,11 @@ class SharedAccessTests(TestCase):
         self.assertEqual(home.status_code, 200)
         self.assertNotContains(home, 'class="navbar')
         self.assertContains(home, "Lock this device")
+        self.assertContains(home, f'href="{reverse("about")}">About</a>')
+        footer_actions = home.content.decode().split('class="footer-actions"', 1)[1]
+        self.assertLess(
+            footer_actions.index("Lock this device"), footer_actions.index(">About</a>")
+        )
         self.assertEqual(home.headers["Cache-Control"], "private, no-store")
         self.assertEqual(home.headers["X-Robots-Tag"], "noindex, noarchive")
 
