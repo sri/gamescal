@@ -18,10 +18,15 @@ html[data-theme="everforest"] {
   --theme-surface: #343f44;
   --theme-surface-deep: #21272c;
   --theme-muted: #9da9a0;
+  --theme-muted-rgb: 157, 169, 160;
   --theme-border: #475258;
   --theme-red: #e67e80;
+  --theme-red-rgb: 230, 126, 128;
+  --theme-danger-text: #181d20;
   --theme-yellow: #dbbc7f;
+  --theme-yellow-rgb: 219, 188, 127;
   --theme-green: #a7c080;
+  --theme-green-rgb: 167, 192, 128;
   --theme-blue: #7fbbb3;
   --bs-body-bg: #2d353b;
   --bs-body-color: #d3c6aa;
@@ -41,14 +46,19 @@ html[data-theme="everforest"] {
 html[data-theme="solarized-dark"] {
   --theme-accent: #268bd2;
   --theme-accent-rgb: 38, 139, 210;
-  --theme-accent-text: #002b36;
+  --theme-accent-text: #000000;
   --theme-surface: #073642;
   --theme-surface-deep: #00212b;
   --theme-muted: #839496;
+  --theme-muted-rgb: 131, 148, 150;
   --theme-border: #586e75;
   --theme-red: #dc322f;
+  --theme-red-rgb: 220, 50, 47;
+  --theme-danger-text: #000000;
   --theme-yellow: #b58900;
+  --theme-yellow-rgb: 181, 137, 0;
   --theme-green: #859900;
+  --theme-green-rgb: 133, 153, 0;
   --theme-blue: #268bd2;
   --bs-body-bg: #002b36;
   --bs-body-color: #93a1a1;
@@ -72,10 +82,15 @@ html[data-theme="vantablack"] {
   --theme-surface: #1a1a1a;
   --theme-surface-deep: #090909;
   --theme-muted: #a4a4a4;
+  --theme-muted-rgb: 164, 164, 164;
   --theme-border: #505050;
   --theme-red: #a4a4a4;
+  --theme-red-rgb: 164, 164, 164;
+  --theme-danger-text: #000000;
   --theme-yellow: #cecece;
+  --theme-yellow-rgb: 206, 206, 206;
   --theme-green: #b6b6b6;
+  --theme-green-rgb: 182, 182, 182;
   --theme-blue: #8d8d8d;
   --bs-body-bg: #000000;
   --bs-body-color: #ececec;
@@ -99,10 +114,15 @@ html[data-theme="osaka-jade"] {
   --theme-surface: #23372b;
   --theme-surface-deep: #0c1512;
   --theme-muted: #81b8a8;
+  --theme-muted-rgb: 129, 184, 168;
   --theme-border: #53685b;
   --theme-red: #ff5345;
+  --theme-red-rgb: 255, 83, 69;
+  --theme-danger-text: #090f0d;
   --theme-yellow: #e5c736;
+  --theme-yellow-rgb: 229, 199, 54;
   --theme-green: #63b07a;
+  --theme-green-rgb: 99, 176, 122;
   --theme-blue: #8cd3cb;
   --bs-body-bg: #111c18;
   --bs-body-color: #c1c497;
@@ -119,8 +139,108 @@ html[data-theme="osaka-jade"] {
   --bs-link-hover-color: #acd4cf;
 }
 
+html[data-theme="ristretto"] {
+  --theme-accent: #f38d70;
+  --theme-accent-rgb: 243, 141, 112;
+  --theme-accent-text: #181414;
+  --theme-surface: #3d2f2a;
+  --theme-surface-deep: #211b1b;
+  --theme-muted: #c3b7b8;
+  --theme-muted-rgb: 195, 183, 184;
+  --theme-border: #72696a;
+  --theme-red: #fd6883;
+  --theme-red-rgb: 253, 104, 131;
+  --theme-danger-text: #181414;
+  --theme-yellow: #f9cc6c;
+  --theme-yellow-rgb: 249, 204, 108;
+  --theme-green: #adda78;
+  --theme-green-rgb: 173, 218, 120;
+  --theme-blue: #f38d70;
+  --bs-body-bg: #2c2525;
+  --bs-body-color: #e6d9db;
+  --bs-emphasis-color: #e6d9db;
+  --bs-secondary-color: #c3b7b8;
+  --bs-tertiary-bg: #3d2f2a;
+  --bs-border-color: #72696a;
+  --bs-primary: #f38d70;
+  --bs-primary-rgb: 243, 141, 112;
+  --bs-primary-text-emphasis: #f8a788;
+  --bs-primary-bg-subtle: #403e41;
+  --bs-primary-border-subtle: #f38d70;
+  --bs-link-color: #f38d70;
+  --bs-link-hover-color: #85dacc;
+}
+
+html[data-theme="tokyo-night"] {
+  --theme-accent: #7aa2f7;
+  --theme-accent-rgb: 122, 162, 247;
+  --theme-accent-text: #0e0e14;
+  --theme-surface: #24283b;
+  --theme-surface-deep: #13141c;
+  --theme-muted: #b4bee6;
+  --theme-muted-rgb: 180, 190, 230;
+  --theme-border: #414868;
+  --theme-red: #f7768e;
+  --theme-red-rgb: 247, 118, 142;
+  --theme-danger-text: #0e0e14;
+  --theme-yellow: #e0af68;
+  --theme-yellow-rgb: 224, 175, 104;
+  --theme-green: #9ece6a;
+  --theme-green-rgb: 158, 206, 106;
+  --theme-blue: #7aa2f7;
+  --bs-body-bg: #1a1b26;
+  --bs-body-color: #a9b1d6;
+  --bs-emphasis-color: #c0caf5;
+  --bs-secondary-color: #b4bee6;
+  --bs-tertiary-bg: #24283b;
+  --bs-border-color: #414868;
+  --bs-primary: #7aa2f7;
+  --bs-primary-rgb: 122, 162, 247;
+  --bs-primary-text-emphasis: #c0caf5;
+  --bs-primary-bg-subtle: #292e42;
+  --bs-primary-border-subtle: #7aa2f7;
+  --bs-link-color: #7aa2f7;
+  --bs-link-hover-color: #0db9d7;
+}
+
+html[data-theme]:not([data-theme="default"]) {
+  --bs-secondary: var(--theme-muted);
+  --bs-secondary-rgb: var(--theme-muted-rgb);
+  --bs-info: var(--theme-accent);
+  --bs-info-rgb: var(--theme-accent-rgb);
+  --bs-focus-ring-color: rgba(var(--theme-accent-rgb), 0.25);
+  --bs-form-valid-color: var(--theme-green);
+  --bs-form-valid-border-color: var(--theme-green);
+  --bs-form-invalid-color: var(--theme-red);
+  --bs-form-invalid-border-color: var(--theme-red);
+  --bs-danger: var(--theme-red);
+  --bs-danger-rgb: var(--theme-red-rgb);
+  --bs-danger-text-emphasis: var(--theme-red);
+  --bs-danger-bg-subtle: color-mix(in srgb, var(--theme-red) 14%, var(--theme-surface-deep));
+  --bs-danger-border-subtle: color-mix(in srgb, var(--theme-red) 55%, var(--theme-border));
+  --bs-warning: var(--theme-yellow);
+  --bs-warning-rgb: var(--theme-yellow-rgb);
+  --bs-warning-text-emphasis: var(--theme-yellow);
+  --bs-warning-bg-subtle: color-mix(in srgb, var(--theme-yellow) 14%, var(--theme-surface-deep));
+  --bs-warning-border-subtle: color-mix(in srgb, var(--theme-yellow) 55%, var(--theme-border));
+  --bs-success: var(--theme-green);
+  --bs-success-rgb: var(--theme-green-rgb);
+  --bs-success-text-emphasis: var(--theme-green);
+  --bs-success-bg-subtle: color-mix(in srgb, var(--theme-green) 14%, var(--theme-surface-deep));
+  --bs-success-border-subtle: color-mix(in srgb, var(--theme-green) 55%, var(--theme-border));
+}
+
 html[data-theme]:not([data-theme="default"]) body {
   background: var(--bs-body-bg);
+}
+
+html[data-theme]:not([data-theme="default"]) .calendar-dot {
+  box-shadow: 0 0 0 4px rgba(var(--theme-accent-rgb), 0.16);
+}
+
+html[data-theme]:not([data-theme="default"]) .calendar-form input:focus {
+  border-color: var(--theme-accent);
+  box-shadow: 0 0 0 0.25rem rgba(var(--theme-accent-rgb), 0.22);
 }
 
 html[data-theme]:not([data-theme="default"]) .btn-primary {
@@ -143,35 +263,180 @@ html[data-theme]:not([data-theme="default"]) .btn-outline-primary {
   --bs-btn-hover-border-color: var(--theme-accent);
 }
 
-html[data-theme]:not([data-theme="default"]) .text-bg-primary {
+html[data-theme]:not([data-theme="default"]) .btn-secondary {
+  --bs-btn-color: var(--theme-accent-text);
+  --bs-btn-bg: var(--theme-muted);
+  --bs-btn-border-color: var(--theme-muted);
+  --bs-btn-hover-color: var(--theme-accent-text);
+  --bs-btn-hover-bg: color-mix(in srgb, var(--theme-muted) 84%, white);
+  --bs-btn-hover-border-color: var(--theme-muted);
+  --bs-btn-active-color: var(--theme-accent-text);
+  --bs-btn-active-bg: color-mix(in srgb, var(--theme-muted) 78%, black);
+  --bs-btn-active-border-color: var(--theme-muted);
+}
+
+html[data-theme]:not([data-theme="default"]) .btn-outline-secondary {
+  --bs-btn-color: var(--theme-muted);
+  --bs-btn-border-color: var(--theme-border);
+  --bs-btn-hover-color: var(--theme-accent-text);
+  --bs-btn-hover-bg: var(--theme-muted);
+  --bs-btn-hover-border-color: var(--theme-muted);
+  --bs-btn-active-color: var(--theme-accent-text);
+  --bs-btn-active-bg: var(--theme-muted);
+  --bs-btn-active-border-color: var(--theme-muted);
+}
+
+html[data-theme]:not([data-theme="default"]) .btn-light {
+  --bs-btn-color: var(--bs-body-color);
+  --bs-btn-bg: var(--theme-surface);
+  --bs-btn-border-color: var(--theme-border);
+  --bs-btn-hover-color: var(--bs-emphasis-color);
+  --bs-btn-hover-bg: color-mix(in srgb, var(--theme-surface) 82%, white);
+  --bs-btn-hover-border-color: var(--theme-muted);
+  --bs-btn-active-color: var(--bs-emphasis-color);
+  --bs-btn-active-bg: var(--theme-surface-deep);
+  --bs-btn-active-border-color: var(--theme-muted);
+}
+
+html[data-theme]:not([data-theme="default"]) .btn-danger {
+  --bs-btn-color: var(--theme-danger-text);
+  --bs-btn-bg: var(--theme-red);
+  --bs-btn-border-color: var(--theme-red);
+  --bs-btn-hover-color: var(--theme-danger-text);
+  --bs-btn-hover-bg: color-mix(in srgb, var(--theme-red) 84%, white);
+  --bs-btn-hover-border-color: color-mix(in srgb, var(--theme-red) 84%, white);
+  --bs-btn-active-color: var(--theme-danger-text);
+  --bs-btn-active-bg: color-mix(in srgb, var(--theme-red) 78%, black);
+  --bs-btn-active-border-color: var(--theme-red);
+}
+
+html[data-theme]:not([data-theme="default"]) .btn-outline-danger {
+  --bs-btn-color: var(--theme-red);
+  --bs-btn-border-color: color-mix(in srgb, var(--theme-red) 75%, var(--theme-border));
+  --bs-btn-hover-color: var(--theme-danger-text);
+  --bs-btn-hover-bg: var(--theme-red);
+  --bs-btn-hover-border-color: var(--theme-red);
+  --bs-btn-active-color: var(--theme-danger-text);
+  --bs-btn-active-bg: var(--theme-red);
+  --bs-btn-active-border-color: var(--theme-red);
+}
+
+html[data-theme]:not([data-theme="default"]) .btn-outline-warning {
+  --bs-btn-color: var(--theme-yellow);
+  --bs-btn-border-color: color-mix(in srgb, var(--theme-yellow) 70%, var(--theme-border));
+  --bs-btn-hover-color: var(--theme-accent-text);
+  --bs-btn-hover-bg: var(--theme-yellow);
+  --bs-btn-hover-border-color: var(--theme-yellow);
+  --bs-btn-active-color: var(--theme-accent-text);
+  --bs-btn-active-bg: var(--theme-yellow);
+  --bs-btn-active-border-color: var(--theme-yellow);
+}
+
+html[data-theme]:not([data-theme="default"]) .btn-success {
+  --bs-btn-color: var(--theme-accent-text);
+  --bs-btn-bg: var(--theme-green);
+  --bs-btn-border-color: var(--theme-green);
+  --bs-btn-hover-color: var(--theme-accent-text);
+  --bs-btn-hover-bg: color-mix(in srgb, var(--theme-green) 84%, white);
+  --bs-btn-hover-border-color: var(--theme-green);
+  --bs-btn-active-color: var(--theme-accent-text);
+  --bs-btn-active-bg: color-mix(in srgb, var(--theme-green) 78%, black);
+  --bs-btn-active-border-color: var(--theme-green);
+}
+
+html[data-theme]:not([data-theme="default"]) .btn-outline-success {
+  --bs-btn-color: var(--theme-green);
+  --bs-btn-border-color: color-mix(in srgb, var(--theme-green) 70%, var(--theme-border));
+  --bs-btn-hover-color: var(--theme-accent-text);
+  --bs-btn-hover-bg: var(--theme-green);
+  --bs-btn-hover-border-color: var(--theme-green);
+  --bs-btn-active-color: var(--theme-accent-text);
+  --bs-btn-active-bg: var(--theme-green);
+  --bs-btn-active-border-color: var(--theme-green);
+}
+
+html[data-theme]:not([data-theme="default"]) .event-filter-tabs,
+html[data-theme]:not([data-theme="default"]) .event-scope-tabs {
+  --bs-nav-link-color: var(--theme-muted);
+  --bs-nav-link-hover-color: var(--bs-emphasis-color);
+  --bs-nav-pills-link-active-color: var(--theme-accent-text);
+  --bs-nav-pills-link-active-bg: var(--theme-accent);
+}
+
+html[data-theme]:not([data-theme="default"]) .alert-info {
+  --bs-alert-color: var(--theme-accent);
+  --bs-alert-bg: color-mix(in srgb, var(--theme-accent) 14%, var(--theme-surface-deep));
+  --bs-alert-border-color: color-mix(in srgb, var(--theme-accent) 50%, var(--theme-border));
+  --bs-alert-link-color: var(--theme-accent);
+}
+
+html[data-theme]:not([data-theme="default"]) .alert-danger {
+  --bs-alert-color: var(--theme-red);
+  --bs-alert-bg: color-mix(in srgb, var(--theme-red) 14%, var(--theme-surface-deep));
+  --bs-alert-border-color: color-mix(in srgb, var(--theme-red) 50%, var(--theme-border));
+  --bs-alert-link-color: var(--theme-red);
+}
+
+html[data-theme]:not([data-theme="default"]) .alert-warning {
+  --bs-alert-color: var(--theme-yellow);
+  --bs-alert-bg: color-mix(in srgb, var(--theme-yellow) 14%, var(--theme-surface-deep));
+  --bs-alert-border-color: color-mix(in srgb, var(--theme-yellow) 50%, var(--theme-border));
+  --bs-alert-link-color: var(--theme-yellow);
+}
+
+html[data-theme]:not([data-theme="default"]) .alert-success {
+  --bs-alert-color: var(--theme-green);
+  --bs-alert-bg: color-mix(in srgb, var(--theme-green) 14%, var(--theme-surface-deep));
+  --bs-alert-border-color: color-mix(in srgb, var(--theme-green) 50%, var(--theme-border));
+  --bs-alert-link-color: var(--theme-green);
+}
+
+html[data-theme]:not([data-theme="default"]) .text-bg-primary,
+html[data-theme]:not([data-theme="default"]) .text-bg-secondary,
+html[data-theme]:not([data-theme="default"]) .text-bg-info,
+html[data-theme]:not([data-theme="default"]) .text-bg-warning,
+html[data-theme]:not([data-theme="default"]) .text-bg-success {
   color: var(--theme-accent-text) !important;
 }
 
+html[data-theme]:not([data-theme="default"]) .text-bg-danger {
+  color: var(--theme-danger-text) !important;
+}
+
+html[data-theme]:not([data-theme="default"]) .event-location-colored,
+html[data-theme]:not([data-theme="default"]) .mobile-event-location-colored {
+  --theme-location-color: color-mix(in srgb, hsl(var(--location-hue) 58% 55%) 30%, var(--theme-accent));
+}
+
 html[data-theme]:not([data-theme="default"]) .event-location-colored {
-  --bs-table-bg: color-mix(in srgb, var(--theme-accent) 9%, var(--theme-surface-deep));
-  --bs-table-hover-bg: color-mix(in srgb, var(--theme-accent) 16%, var(--theme-surface-deep));
+  --bs-table-bg: color-mix(in srgb, var(--theme-location-color) 9%, var(--theme-surface-deep));
+  --bs-table-hover-bg: color-mix(in srgb, var(--theme-location-color) 16%, var(--theme-surface-deep));
 }
 
 html[data-theme]:not([data-theme="default"]) .event-location-colored > td:first-child,
 html[data-theme]:not([data-theme="default"]) .mobile-event-location-colored {
-  border-left-color: hsl(var(--location-hue) 52% 58%);
+  border-left-color: var(--theme-location-color);
 }
 
 html[data-theme]:not([data-theme="default"]) .mobile-event-location-colored {
-  background: color-mix(in srgb, var(--theme-accent) 9%, var(--theme-surface-deep));
+  background: color-mix(in srgb, var(--theme-location-color) 9%, var(--theme-surface-deep));
 }
 
 html[data-theme]:not([data-theme="default"]) .location-chip,
 html[data-theme]:not([data-theme="default"]) .mobile-location-link {
-  border-color: hsl(var(--location-hue) 35% 42%);
+  border-color: color-mix(in srgb, var(--theme-location-color, var(--theme-accent)) 60%, var(--theme-border));
   color: var(--bs-body-color);
-  background: hsl(var(--location-hue) 24% 20%);
+  background: color-mix(in srgb, var(--theme-location-color, var(--theme-accent)) 15%, var(--theme-surface-deep));
 }
 
 html[data-theme]:not([data-theme="default"]) .location-chip:hover,
 html[data-theme]:not([data-theme="default"]) .mobile-location-link:hover {
   color: var(--bs-emphasis-color);
-  background: hsl(var(--location-hue) 28% 25%);
+  background: color-mix(in srgb, var(--theme-location-color, var(--theme-accent)) 24%, var(--theme-surface-deep));
+}
+
+html[data-theme]:not([data-theme="default"]) .location-color-dot {
+  background: var(--theme-location-color, var(--theme-accent));
 }
 
 html[data-theme]:not([data-theme="default"]) .event-external-calendar {

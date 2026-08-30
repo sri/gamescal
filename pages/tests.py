@@ -661,6 +661,8 @@ class PageTests(TestCase):
             ("Solarized Dark", "solarized-dark"),
             ("Vantablack", "vantablack"),
             ("Osaka Jade", "osaka-jade"),
+            ("Ristretto", "ristretto"),
+            ("Tokyo Night", "tokyo-night"),
         ):
             self.assertContains(response, label)
             self.assertContains(response, f'data-theme-option="{value}"')

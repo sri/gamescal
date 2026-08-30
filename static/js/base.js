@@ -10,6 +10,8 @@
     },
     vantablack: { label: "Vantablack", color: "#000000", mode: "dark" },
     "osaka-jade": { label: "Osaka Jade", color: "#111c18", mode: "dark" },
+    ristretto: { label: "Ristretto", color: "#2c2525", mode: "dark" },
+    "tokyo-night": { label: "Tokyo Night", color: "#1a1b26", mode: "dark" },
   };
 
   function savedTheme() {
