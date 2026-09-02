@@ -1069,8 +1069,12 @@ class PageTests(TestCase):
         self.assertContains(
             response, reverse("calendar_edit", kwargs={"pk": calendar.pk})
         )
-        self.assertNotContains(response, "Refresh All Events")
-        self.assertNotContains(response, reverse("calendars_refresh_all"))
+        self.assertContains(response, "Refresh All Events")
+        self.assertContains(response, reverse("calendars_refresh_all"))
+        collapse = response.content.decode().split(
+            'id="calendarsCollapse"', 1
+        )[1].split("</section>", 1)[0]
+        self.assertIn(reverse("calendars_refresh_all"), collapse)
         self.assertContains(response, "Add URL")
 
     def test_saved_urls_can_be_added_opened_edited_and_deleted_inline(self):

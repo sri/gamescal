@@ -79,6 +79,14 @@
     </div>
 
     <div class="calendar-collapse-actions d-flex gap-2 flex-wrap mt-3">
+      {% if calendars %}
+        <form method="post" action="{% url 'calendars_refresh_all' %}" onsubmit="return confirm('Download every calendar again and replace all stored events for each successful calendar?')">
+          {% csrf_token %}
+          <button class="btn btn-outline-primary" type="submit">
+            <span aria-hidden="true">↻</span> Refresh All Events
+          </button>
+        </form>
+      {% endif %}
       <a class="btn btn-primary" href="{% url 'calendar_add' %}">
         <span aria-hidden="true">＋</span> Add Calendar
       </a>
