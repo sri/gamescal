@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -21,6 +22,7 @@ from .services import (
     ImportResult,
     _validate_remote_url,
     parse_calendar,
+    parse_uploaded_calendar,
 )
 from .templatetags.calendar_tags import (
     COOL_LOCATION_HUES,
@@ -708,6 +710,84 @@ class PageTests(TestCase):
         self.assertTrue(calendar.events.get().is_mine)
         self.assertIsNotNone(calendar.last_synced_at)
 
+    def test_add_calendar_form_offers_an_ics_upload(self):
+        response = self.client.get(reverse("calendar_add"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'enctype="multipart/form-data"')
+        self.assertContains(response, 'name="ics_file"')
+        self.assertContains(response, 'accept=".ics,text/calendar,application/ics"')
+        self.assertContains(response, "or upload an ICS file")
+
+    @patch("pages.views.parse_uploaded_calendar")
+    def test_preview_then_confirm_uploaded_ics_file(self, parse_upload):
+        parse_upload.return_value = self.sample_result()
+        uploaded_file = SimpleUploadedFile(
+            "league-schedule.ics",
+            b"BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n",
+            content_type="text/calendar",
+        )
+
+        response = self.client.post(
+            reverse("calendar_add"),
+            {
+                "name": "",
+                "ics_file": uploaded_file,
+                "is_mine": "on",
+                "team_aliases": "Falcons",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        token = response.url.split("/")[-2]
+        preview = self.client.get(response.url)
+        self.assertContains(preview, "Uploaded file")
+        self.assertContains(preview, "league-schedule.ics")
+        self.assertContains(preview, "Falcons vs Bears")
+        self.assertEqual(Calendar.objects.count(), 0)
+
+        confirm = self.client.post(
+            reverse("calendar_confirm", kwargs={"token": token})
+        )
+
+        self.assertRedirects(confirm, reverse("home"))
+        calendar = Calendar.objects.get()
+        self.assertEqual(calendar.name, "City League")
+        self.assertIsNone(calendar.cal_url)
+        self.assertEqual(calendar.source_filename, "league-schedule.ics")
+        self.assertEqual(calendar.events.count(), 1)
+        parse_upload.assert_called_once()
+
+    def test_calendar_import_requires_exactly_one_source(self):
+        no_source = self.client.post(reverse("calendar_add"), {"name": "League"})
+        self.assertContains(
+            no_source, "Enter a calendar URL or choose an ICS file."
+        )
+
+        both_sources = self.client.post(
+            reverse("calendar_add"),
+            {
+                "cal_url": "https://example.com/schedule.ics",
+                "ics_file": SimpleUploadedFile("schedule.ics", b"calendar"),
+            },
+        )
+        self.assertContains(
+            both_sources, "Use either a calendar URL or an ICS file, not both."
+        )
+
+    @patch("pages.views.parse_uploaded_calendar")
+    def test_uploaded_ics_error_is_shown_on_file_field(self, parse_upload):
+        parse_upload.side_effect = CalendarImportError("That file is broken.")
+
+        response = self.client.post(
+            reverse("calendar_add"),
+            {"ics_file": SimpleUploadedFile("broken.ics", b"not a calendar")},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "That file is broken.")
+        self.assertEqual(Calendar.objects.count(), 0)
+
     @patch("pages.views.fetch_and_parse_calendar")
     def test_import_error_is_shown_on_form(self, fetch):
         fetch.side_effect = CalendarImportError("That feed is broken.")
@@ -809,6 +889,33 @@ class PageTests(TestCase):
         )
         self.assertTrue(calendar.events.filter(pk=old_event.pk).exists())
         self.assertContains(response, "Feed unavailable.")
+
+    @patch("pages.views.fetch_and_parse_calendar")
+    def test_uploaded_calendar_has_no_feed_to_refresh(self, fetch):
+        calendar = Calendar.objects.create(
+            name="Uploaded League", source_filename="league.ics"
+        )
+        event = CalendarEvent.objects.create(
+            calendar=calendar,
+            external_uid="uploaded-event",
+            title="Uploaded game",
+            starts_at=timezone.now(),
+            ends_at=timezone.now() + timedelta(hours=1),
+        )
+
+        response = self.client.post(
+            reverse("calendar_refresh", kwargs={"pk": calendar.pk}),
+            {"next": "edit"},
+            follow=True,
+        )
+
+        self.assertRedirects(
+            response, reverse("calendar_edit", kwargs={"pk": calendar.pk})
+        )
+        self.assertTrue(calendar.events.filter(pk=event.pk).exists())
+        self.assertContains(response, "has no feed to refresh")
+        self.assertNotContains(response, "Replace All Events")
+        fetch.assert_not_called()
 
     @patch("pages.views.fetch_and_parse_calendar")
     def test_refresh_all_replaces_events_in_every_calendar(self, fetch):
@@ -1396,6 +1503,21 @@ END:VCALENDAR\r
         self.assertEqual(result.timezone, "America/Phoenix")
         self.assertEqual(start_in_arizona.hour, 19)
         self.assertEqual(start_in_arizona.utcoffset(), timedelta(hours=-7))
+
+    def test_uploaded_calendar_uses_filename_when_feed_has_no_name(self):
+        uploaded_file = SimpleUploadedFile(
+            "fall-schedule.ics",
+            b"BEGIN:VCALENDAR\r\n"
+            b"VERSION:2.0\r\n"
+            b"PRODID:-//Gamescal Tests//EN\r\n"
+            b"END:VCALENDAR\r\n",
+            content_type="text/calendar",
+        )
+
+        result = parse_uploaded_calendar(uploaded_file)
+
+        self.assertEqual(result.name, "fall-schedule")
+        self.assertEqual(result.events, [])
 
     def test_private_calendar_urls_are_blocked(self):
         with self.assertRaises(CalendarImportError):

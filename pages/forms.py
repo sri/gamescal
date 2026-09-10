@@ -6,6 +6,7 @@ from .models import (
     CalendarVisibilityRule,
     SavedLink,
 )
+from .services import MAX_DOWNLOAD_BYTES
 
 
 class CalendarImportForm(forms.Form):
@@ -16,13 +17,22 @@ class CalendarImportForm(forms.Form):
     )
     cal_url = forms.URLField(
         max_length=2000,
+        required=False,
         label="Calendar URL",
-        help_text="An HTTP or HTTPS URL for an iCalendar (.ics) feed.",
+        help_text="Paste an HTTP or HTTPS URL for an iCalendar (.ics) feed.",
         widget=forms.URLInput(
             attrs={
                 "placeholder": "https://example.com/schedule.ics",
                 "autocomplete": "url",
             }
+        ),
+    )
+    ics_file = forms.FileField(
+        required=False,
+        label="ICS file",
+        help_text="Upload an iCalendar (.ics) file up to 2 MB.",
+        widget=forms.ClearableFileInput(
+            attrs={"accept": ".ics,text/calendar,application/ics"}
         ),
     )
     website_url = forms.URLField(
@@ -51,13 +61,41 @@ class CalendarImportForm(forms.Form):
     )
 
     def clean_cal_url(self):
-        cal_url = self.cleaned_data["cal_url"]
-        if Calendar.objects.filter(cal_url=cal_url).exists():
+        cal_url = self.cleaned_data.get("cal_url")
+        if cal_url and Calendar.objects.filter(cal_url=cal_url).exists():
             raise forms.ValidationError("This calendar has already been added.")
         return cal_url
 
+    def clean_ics_file(self):
+        ics_file = self.cleaned_data.get("ics_file")
+        if ics_file and ics_file.size > MAX_DOWNLOAD_BYTES:
+            raise forms.ValidationError(
+                "The calendar file is too large (maximum 2 MB)."
+            )
+        return ics_file
+
+    def clean(self):
+        cleaned_data = super().clean()
+        cal_url = cleaned_data.get("cal_url")
+        ics_file = cleaned_data.get("ics_file")
+        if cal_url and ics_file:
+            raise forms.ValidationError(
+                "Use either a calendar URL or an ICS file, not both."
+            )
+        if (
+            not cal_url
+            and not ics_file
+            and not self.has_error("cal_url")
+            and not self.has_error("ics_file")
+        ):
+            raise forms.ValidationError("Enter a calendar URL or choose an ICS file.")
+        return cleaned_data
+
 
 class CalendarEditForm(forms.ModelForm):
+    def clean_cal_url(self):
+        return self.cleaned_data.get("cal_url") or None
+
     class Meta:
         model = Calendar
         fields = ("name", "cal_url", "website_url", "is_mine", "team_aliases")

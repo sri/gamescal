@@ -5,7 +5,15 @@ from django.db import models
 
 class Calendar(models.Model):
     name = models.CharField(max_length=255)
-    cal_url = models.URLField("calendar URL", max_length=2000, unique=True)
+    cal_url = models.URLField(
+        "calendar URL",
+        max_length=2000,
+        unique=True,
+        blank=True,
+        null=True,
+        help_text="Optional for calendars imported from an uploaded ICS file.",
+    )
+    source_filename = models.CharField(max_length=255, blank=True, editable=False)
     website_url = models.URLField(max_length=2000, blank=True)
     is_active = models.BooleanField(default=True)
     is_mine = models.BooleanField(

@@ -39,7 +39,7 @@ estimate driving time, distance, and the usable buffer between games.
 
 ## Features
 
-- **One schedule** — import multiple ICS calendars and see their events together.
+- **One schedule** — import ICS calendars from feed URLs or uploaded files and see their events together.
 - **Mobile friendly** — compact event cards make dates, times, venues, and teams easy
   to scan on the go.
 - **Useful event views** — keep Games and Practices within the current Monday–Sunday
@@ -52,8 +52,8 @@ estimate driving time, distance, and the usable buffer between games.
   the previous game when the location changes.
 - **Travel estimates** — use Geoapify to estimate drive time, distance, and the buffer
   available between same-day games.
-- **Calendar management** — preview before importing, replace a calendar’s stored
-  events from a fresh feed, disable calendars, edit classification rules, and inspect
+- **Calendar management** — preview URLs and uploaded files before importing, replace
+  a feed calendar’s stored events, disable calendars, edit classification rules, and inspect
   calendar statistics.
 - **Saved links** — keep useful schedule URLs with optional names, manage them inline
   with the calendar list, and open them from a link section at the bottom of the page.

@@ -27,6 +27,7 @@
                 <span class="badge text-bg-secondary">Inactive</span>
               {% endif %}
               {% if calendar.is_mine %}<span class="badge text-bg-primary">Mine</span>{% endif %}
+              {% if not calendar.cal_url %}<span class="badge text-bg-secondary">Uploaded</span>{% endif %}
               {% if calendar.last_sync_error %}
                 <span class="badge text-bg-danger" title="{{ calendar.last_sync_error }}">Sync error</span>
               {% endif %}
@@ -79,7 +80,7 @@
     </div>
 
     <div class="calendar-collapse-actions d-flex gap-2 flex-wrap mt-3">
-      {% if calendars %}
+      {% if has_refreshable_calendars %}
         <form method="post" action="{% url 'calendars_refresh_all' %}" onsubmit="return confirm('Download every calendar again and replace all stored events for each successful calendar?')">
           {% csrf_token %}
           <button class="btn btn-outline-primary" type="submit">
@@ -188,7 +189,7 @@
                     <span class="text-body-secondary">—</span>
                   {% endif %}
                 </td>
-                <td><a class="calendar-label" href="{{ event.calendar.website_url|default:event.calendar.cal_url }}" target="_blank" rel="noopener noreferrer" title="Open {{ event.calendar.name }} calendar">{{ event.calendar.name }}</a></td>
+                <td>{% if event.calendar.website_url or event.calendar.cal_url %}<a class="calendar-label" href="{{ event.calendar.website_url|default:event.calendar.cal_url }}" target="_blank" rel="noopener noreferrer" title="Open {{ event.calendar.name }} calendar">{{ event.calendar.name }}</a>{% else %}<span class="calendar-label">{{ event.calendar.name }}</span>{% endif %}</td>
               </tr>
             {% endwith %}
           {% endfor %}
@@ -211,7 +212,7 @@
                   <strong>{% if event.is_all_day %}All day{% else %}{{ local_start|time:"g:i A" }}{% endif %}</strong>
                 </div>
               </div>
-              <a class="calendar-label mobile-calendar-label" href="{{ event.calendar.website_url|default:event.calendar.cal_url }}" target="_blank" rel="noopener noreferrer" title="Open {{ event.calendar.name }} calendar">{{ event.calendar.name }}</a>
+              {% if event.calendar.website_url or event.calendar.cal_url %}<a class="calendar-label mobile-calendar-label" href="{{ event.calendar.website_url|default:event.calendar.cal_url }}" target="_blank" rel="noopener noreferrer" title="Open {{ event.calendar.name }} calendar">{{ event.calendar.name }}</a>{% else %}<span class="calendar-label mobile-calendar-label">{{ event.calendar.name }}</span>{% endif %}
             </header>
 
             <div class="mobile-event-body">

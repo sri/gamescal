@@ -40,12 +40,19 @@ class CalendarAdmin(admin.ModelAdmin):
         "name",
         "is_active",
         "is_mine",
+        "source_filename",
         "timezone",
         "last_synced_at",
         "updated_at",
     )
     list_filter = ("is_active", "is_mine", "source_format")
-    search_fields = ("name", "cal_url", "website_url", "team_aliases")
+    search_fields = (
+        "name",
+        "cal_url",
+        "source_filename",
+        "website_url",
+        "team_aliases",
+    )
     readonly_fields = ("last_synced_at", "created_at", "updated_at")
     inlines = (CalendarEventInline,)
 

@@ -7,20 +7,42 @@
   <a class="back-link" href="{% url 'home' %}">← Back to events</a>
   <div class="mt-3 mb-4">
     <h1>Add Calendar</h1>
-    <p class="text-body-secondary">Paste an iCalendar feed URL. You’ll preview its events before anything is saved.</p>
+    <p class="text-body-secondary">Paste an iCalendar feed URL or upload an ICS file. You’ll preview its events before anything is saved.</p>
   </div>
 
-  <form method="post" class="card border-0 shadow-sm calendar-form">
+  <form method="post" enctype="multipart/form-data" class="card border-0 shadow-sm calendar-form">
     <div class="card-body p-4">
       {% csrf_token %}
       {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
-      {% for field in form %}
-        <div class="mb-4">
-          <label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}</label>
-          {{ field }}
-          {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-          {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+
+      <fieldset class="mb-4">
+        <legend class="h5 mb-3">Calendar source</legend>
+        <div>
+          <label class="form-label fw-semibold" for="{{ form.cal_url.id_for_label }}">{{ form.cal_url.label }}</label>
+          {{ form.cal_url }}
+          {% if form.cal_url.help_text %}<div class="form-text">{{ form.cal_url.help_text }}</div>{% endif %}
+          {% for error in form.cal_url.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
         </div>
+
+        <div class="calendar-source-divider" aria-hidden="true"><span>or</span></div>
+
+        <div>
+          <label class="form-label fw-semibold" for="{{ form.ics_file.id_for_label }}">{{ form.ics_file.label }}</label>
+          {{ form.ics_file }}
+          {% if form.ics_file.help_text %}<div class="form-text">{{ form.ics_file.help_text }}</div>{% endif %}
+          {% for error in form.ics_file.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+      </fieldset>
+
+      {% for field in form %}
+        {% if field.name != 'cal_url' and field.name != 'ics_file' %}
+          <div class="mb-4">
+            <label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}</label>
+            {{ field }}
+            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+            {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+          </div>
+        {% endif %}
       {% endfor %}
       <div class="d-flex gap-2 justify-content-end">
         <a class="btn btn-light" href="{% url 'home' %}">Cancel</a>
@@ -30,7 +52,7 @@
   </form>
 
   <div class="alert alert-light border mt-4 small text-body-secondary" role="note">
-    For safety, local/private network URLs are blocked. Feeds are limited to 2 MB and events are imported from 30 days ago through the next year.
+    For safety, local/private network URLs are blocked. Feeds and uploaded files are limited to 2 MB, and events are imported from 30 days ago through the next year. Uploaded files are imported as a snapshot and are not stored.
   </div>
 </div>
 {% endblock content %}

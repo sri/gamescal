@@ -94,12 +94,16 @@
         <div class="card-body p-4">
           <h2 class="h5 mb-3">Actions</h2>
           <div class="d-grid gap-2">
-            <form method="post" action="{% url 'calendar_refresh' calendar.pk %}" class="d-grid" onsubmit="return confirm('Download the latest feed and delete all stored events for {{ calendar.name|escapejs }}? You will review the replacement events before approving them. Cancelling the preview will leave this calendar empty.')">
-              {% csrf_token %}
-              <input type="hidden" name="next" value="edit">
-              <button class="btn btn-outline-primary" type="submit">Replace All Events</button>
-            </form>
-            <p class="small text-body-secondary mb-1">Downloads the latest feed, deletes every stored event, then shows all replacement events for approval. Classification rules are preserved. If the feed cannot be downloaded, existing events are kept.</p>
+            {% if calendar.cal_url %}
+              <form method="post" action="{% url 'calendar_refresh' calendar.pk %}" class="d-grid" onsubmit="return confirm('Download the latest feed and delete all stored events for {{ calendar.name|escapejs }}? You will review the replacement events before approving them. Cancelling the preview will leave this calendar empty.')">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="edit">
+                <button class="btn btn-outline-primary" type="submit">Replace All Events</button>
+              </form>
+              <p class="small text-body-secondary mb-1">Downloads the latest feed, deletes every stored event, then shows all replacement events for approval. Classification rules are preserved. If the feed cannot be downloaded, existing events are kept.</p>
+            {% else %}
+              <p class="small text-body-secondary mb-1">This calendar is a snapshot imported from an ICS file, so it does not have an online feed to refresh.</p>
+            {% endif %}
             <form method="post" action="{% url 'calendar_toggle' calendar.pk %}" class="d-grid">
               {% csrf_token %}
               <input type="hidden" name="next" value="edit">
@@ -119,10 +123,11 @@
           <h2 class="h5 mb-3">Information</h2>
           <dl class="calendar-metadata mb-0">
             <dt>Format</dt><dd>{{ calendar.source_format|upper }}</dd>
+            <dt>Source</dt><dd>{% if calendar.cal_url %}<a href="{{ calendar.cal_url }}" target="_blank" rel="noopener noreferrer">Calendar feed ↗</a>{% else %}Uploaded file{% if calendar.source_filename %}: {{ calendar.source_filename }}{% endif %}{% endif %}</dd>
             <dt>Timezone</dt><dd>{{ calendar.timezone }}</dd>
             <dt>Created</dt><dd>{{ calendar.created_at|date:"M j, Y, g:i A" }}</dd>
             <dt>Last changed</dt><dd>{{ calendar.updated_at|date:"M j, Y, g:i A" }}</dd>
-            <dt>Last refreshed</dt><dd>{% if calendar.last_synced_at %}{{ calendar.last_synced_at|date:"M j, Y, g:i A" }}{% else %}Never{% endif %}</dd>
+            <dt>Last imported</dt><dd>{% if calendar.last_synced_at %}{{ calendar.last_synced_at|date:"M j, Y, g:i A" }}{% else %}Never{% endif %}</dd>
             <dt>Classification rules</dt><dd>{{ rule_count }}</dd>
             <dt>Visibility rules</dt><dd>{{ visibility_rule_count }}</dd>
           </dl>

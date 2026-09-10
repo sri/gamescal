@@ -4,6 +4,7 @@ import re
 import socket
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, time, timedelta, timezone as dt_timezone
+from pathlib import Path
 from urllib.parse import urljoin, urlparse
 from zoneinfo import ZoneInfo
 
@@ -313,7 +314,7 @@ def _event_data(component, calendar_tz):
     return event
 
 
-def parse_calendar(content, source_url=""):
+def parse_calendar(content, source_url="", source_name=""):
     try:
         calendar = ICalendar.from_ical(content)
     except Exception as exc:
@@ -359,10 +360,27 @@ def parse_calendar(content, source_url=""):
 
     events.sort(key=lambda event: (event.starts_at, event.title))
     parsed_host = urlparse(source_url).hostname or "Imported calendar"
-    name = str(calendar.get("X-WR-CALNAME", "")).strip() or parsed_host
+    name = str(calendar.get("X-WR-CALNAME", "")).strip() or source_name or parsed_host
     return ImportResult(
         name=name[:255], timezone=calendar_tz, events=events, warnings=warnings
     )
+
+
+def parse_uploaded_calendar(uploaded_file):
+    """Read and parse an uploaded ICS file without persisting the original file."""
+    if uploaded_file.size > MAX_DOWNLOAD_BYTES:
+        raise CalendarImportError("The calendar file is too large (maximum 2 MB).")
+
+    try:
+        content = uploaded_file.read(MAX_DOWNLOAD_BYTES + 1)
+    except OSError as exc:
+        raise CalendarImportError("The calendar file could not be read.") from exc
+    if len(content) > MAX_DOWNLOAD_BYTES:
+        raise CalendarImportError("The calendar file is too large (maximum 2 MB).")
+
+    filename = Path(uploaded_file.name).name
+    source_name = Path(filename).stem.strip() or "Imported calendar"
+    return parse_calendar(content, source_name=source_name)
 
 
 def fetch_and_parse_calendar(url):

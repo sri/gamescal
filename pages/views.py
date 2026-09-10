@@ -1,6 +1,7 @@
 import re
 import secrets
 from datetime import datetime, time, timedelta
+from pathlib import Path
 from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
 
@@ -36,6 +37,7 @@ from .services import (
     ImportResult,
     classify_event,
     fetch_and_parse_calendar,
+    parse_uploaded_calendar,
     visibility_for_event,
 )
 from .travel import get_route_estimate
@@ -370,6 +372,9 @@ class HomePageView(TemplateView):
 
         context["calendars"] = calendars
         context["active_calendars"] = active_calendars
+        context["has_refreshable_calendars"] = any(
+            calendar.cal_url for calendar in calendars
+        )
         context["event_scope"] = event_scope
         context["event_view_urls"] = {
             view: event_filter_url(view) for view in ("games", "practices", "all")
@@ -629,19 +634,27 @@ def populate_demo_calendar(request):
 
 def add_calendar(request):
     if request.method == "POST":
-        form = CalendarImportForm(request.POST)
+        form = CalendarImportForm(request.POST, request.FILES)
         if form.is_valid():
+            uploaded_file = form.cleaned_data["ics_file"]
+            cal_url = form.cleaned_data["cal_url"]
             try:
-                result = fetch_and_parse_calendar(form.cleaned_data["cal_url"])
+                if uploaded_file:
+                    result = parse_uploaded_calendar(uploaded_file)
+                else:
+                    result = fetch_and_parse_calendar(cal_url)
             except CalendarImportError as exc:
-                form.add_error("cal_url", str(exc))
+                form.add_error("ics_file" if uploaded_file else "cal_url", str(exc))
             else:
                 token = secrets.token_urlsafe(24)
                 request.session[PREVIEW_SESSION_KEY] = {
                     "token": token,
                     "mode": "add",
                     "name": form.cleaned_data["name"],
-                    "cal_url": form.cleaned_data["cal_url"],
+                    "cal_url": cal_url,
+                    "source_filename": (
+                        Path(uploaded_file.name).name[:255] if uploaded_file else ""
+                    ),
                     "website_url": form.cleaned_data["website_url"],
                     "is_mine": form.cleaned_data["is_mine"],
                     "team_aliases": form.cleaned_data["team_aliases"],
@@ -679,7 +692,8 @@ def calendar_preview(request, token):
         {
             "token": token,
             "calendar_name": preview["name"] or result.name,
-            "cal_url": preview["cal_url"],
+            "cal_url": preview.get("cal_url"),
+            "source_filename": preview.get("source_filename", ""),
             "website_url": preview["website_url"],
             "result": result,
             "is_replacement": is_replacement,
@@ -730,7 +744,8 @@ def confirm_calendar(request, token):
         with transaction.atomic():
             calendar = Calendar.objects.create(
                 name=preview["name"] or result.name,
-                cal_url=preview["cal_url"],
+                cal_url=preview.get("cal_url") or None,
+                source_filename=preview.get("source_filename", ""),
                 website_url=preview["website_url"],
                 is_mine=preview.get("is_mine", False),
                 team_aliases=preview.get("team_aliases", ""),
@@ -839,6 +854,16 @@ def _replace_calendar_events(calendar, result):
 @require_POST
 def refresh_calendar(request, pk):
     calendar = get_object_or_404(Calendar, pk=pk)
+    if not calendar.cal_url:
+        messages.info(
+            request,
+            (
+                f'“{calendar.name}” was imported from a file and has no feed '
+                "to refresh."
+            ),
+        )
+        return _redirect_after_calendar_action(request, calendar)
+
     try:
         result = fetch_and_parse_calendar(calendar.cal_url)
     except CalendarImportError as exc:
@@ -867,9 +892,11 @@ def refresh_calendar(request, pk):
 
 @require_POST
 def refresh_all_calendars(request):
-    calendars = list(Calendar.objects.all())
+    calendars = list(
+        Calendar.objects.exclude(cal_url__isnull=True).exclude(cal_url="")
+    )
     if not calendars:
-        messages.info(request, "There are no calendars to refresh.")
+        messages.info(request, "There are no calendar feeds to refresh.")
         return redirect("home")
 
     refreshed = 0
