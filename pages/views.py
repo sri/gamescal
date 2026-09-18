@@ -683,9 +683,14 @@ def calendar_preview(request, token):
     else:
         cancel_url = reverse("calendar_add")
 
-    _annotate_game_gaps(result.events)
-    _annotate_game_directions(result.events)
-    _annotate_travel_times(result.events)
+    preview_events = result.events
+    if is_replacement:
+        now = timezone.now()
+        preview_events = [event for event in result.events if event.ends_at >= now]
+
+    _annotate_game_gaps(preview_events)
+    _annotate_game_directions(preview_events)
+    _annotate_travel_times(preview_events)
     return render(
         request,
         "pages/calendar_preview.html",
@@ -696,6 +701,7 @@ def calendar_preview(request, token):
             "source_filename": preview.get("source_filename", ""),
             "website_url": preview["website_url"],
             "result": result,
+            "preview_events": preview_events,
             "is_replacement": is_replacement,
             "cancel_url": cancel_url,
         },

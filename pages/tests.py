@@ -864,6 +864,81 @@ class PageTests(TestCase):
         self.assertTrue(refreshed_event.is_mine)
         self.assertFalse(refreshed_event.is_visible)
 
+    @patch("pages.views.timezone.now", return_value=TEST_NOW)
+    @patch("pages.views.fetch_and_parse_calendar")
+    def test_replacement_preview_only_shows_current_and_future_events(
+        self, fetch, _mocked_now
+    ):
+        calendar = Calendar.objects.create(
+            name="League", cal_url="https://example.com/schedule.ics"
+        )
+        result = self.sample_result()
+        result.events = []
+        for title, start, end, all_day in (
+            ("Finished game", -2, -1, False),
+            ("Ending now", -1, 0, False),
+            ("Ongoing game", -1, 1, False),
+            ("Future game", 1, 2, False),
+            ("Finished all-day event", -48, -24, True),
+            ("Current all-day event", -12, 12, True),
+        ):
+            event = self.sample_result().events[0]
+            event.external_uid = title
+            event.title = title
+            event.starts_at = TEST_NOW + timedelta(hours=start)
+            event.ends_at = TEST_NOW + timedelta(hours=end)
+            event.is_all_day = all_day
+            result.events.append(event)
+        fetch.return_value = result
+
+        response = self.client.post(
+            reverse("calendar_refresh", kwargs={"pk": calendar.pk})
+        )
+        preview = self.client.get(response.url)
+
+        self.assertNotContains(preview, "Finished game")
+        self.assertNotContains(preview, "Finished all-day event")
+        for title in ("Ending now", "Ongoing game", "Future game", "Current all-day event"):
+            self.assertContains(preview, title)
+        self.assertContains(preview, "4 current or future events")
+        self.assertContains(preview, "All 6 downloaded events")
+
+        token = response.url.split("/")[-2]
+        self.client.post(reverse("calendar_confirm", kwargs={"token": token}))
+        self.assertEqual(calendar.events.count(), 6)
+        self.assertTrue(calendar.events.filter(title="Finished game").exists())
+
+    @patch("pages.views.timezone.now", return_value=TEST_NOW)
+    @patch("pages.views.fetch_and_parse_calendar")
+    def test_past_only_preview_is_filtered_only_for_replacements(
+        self, fetch, _mocked_now
+    ):
+        calendar = Calendar.objects.create(
+            name="League", cal_url="https://example.com/schedule.ics"
+        )
+        result = self.sample_result()
+        result.events[0].starts_at = TEST_NOW - timedelta(hours=2)
+        result.events[0].ends_at = TEST_NOW - timedelta(hours=1)
+        fetch.return_value = result
+
+        response = self.client.post(
+            reverse("calendar_refresh", kwargs={"pk": calendar.pk})
+        )
+        preview = self.client.get(response.url)
+        self.assertNotContains(preview, "Falcons vs Bears")
+        self.assertContains(preview, "0 current or future events")
+        self.assertContains(preview, "No current or future events")
+        self.assertContains(preview, "Approving will still add them")
+        self.assertNotContains(preview, "leave the calendar with no events")
+
+        response = self.client.post(
+            reverse("calendar_add"),
+            {"cal_url": "https://example.com/new-schedule.ics"},
+        )
+        preview = self.client.get(response.url)
+        self.assertContains(preview, "Falcons vs Bears")
+        self.assertContains(preview, "1 event")
+
     @patch("pages.views.fetch_and_parse_calendar")
     def test_refresh_keeps_old_events_when_download_fails(self, fetch):
         calendar = Calendar.objects.create(
