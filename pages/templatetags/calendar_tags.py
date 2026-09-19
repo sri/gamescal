@@ -36,18 +36,18 @@ def google_maps_directions(destination, origin=None):
 
 
 @register.filter
-def yelp_restaurants(location):
-    if not location:
+def yelp_food_search(location, query):
+    if not location or not query:
         return ""
-    parameters = {"find_desc": "Restaurants", "find_loc": str(location)}
+    parameters = {"find_desc": str(query), "find_loc": str(location)}
     return f"https://www.yelp.com/search?{urlencode(parameters)}"
 
 
 @register.filter
-def google_maps_restaurants(location):
-    if not location:
+def google_maps_food_search(location, query):
+    if not location or not query:
         return ""
-    parameters = {"api": "1", "query": f"restaurants near {location}"}
+    parameters = {"api": "1", "query": f"{query} near {location}"}
     return f"https://www.google.com/maps/search/?{urlencode(parameters)}"
 
 

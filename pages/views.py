@@ -82,6 +82,27 @@ def _normalized_location(value):
     return " ".join(str(value or "").casefold().split())
 
 
+def _food_locations(events):
+    """Return each displayed event destination once, preserving event order."""
+    locations = []
+    seen = set()
+    for event in events:
+        address = str(event.address or event.location or "").strip()
+        key = _normalized_location(address)
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        location = str(event.location or address).strip()
+        locations.append(
+            {
+                "location": location,
+                "address": address,
+                "show_address": _normalized_location(location) != key,
+            }
+        )
+    return locations
+
+
 def _normalized_team_name(value):
     return " ".join(re.findall(r"[a-z0-9]+", str(value or "").casefold()))
 
@@ -320,6 +341,7 @@ class HomePageView(TemplateView):
         local_timezone = ZoneInfo(settings.TIME_ZONE)
         local_today = timezone.localtime(now, local_timezone).date()
         week_start_date = local_today - timedelta(days=local_today.weekday())
+        today_start = datetime.combine(local_today, time.min, tzinfo=local_timezone)
         week_start = datetime.combine(
             week_start_date, time.min, tzinfo=local_timezone
         )
@@ -327,7 +349,7 @@ class HomePageView(TemplateView):
         upcoming_events = CalendarEvent.objects.select_related("calendar").filter(
             calendar__is_active=True,
             is_visible=True,
-            ends_at__gte=now,
+            ends_at__gt=today_start,
         )
         week_events = upcoming_events.filter(
             starts_at__gte=week_start,
@@ -403,6 +425,9 @@ class HomePageView(TemplateView):
             self.request.GET.get("calendars") == "open"
         )
         context["events"] = events
+        context["food_locations"] = (
+            _food_locations(events) if event_view in {"games", "practices"} else []
+        )
         context["event_view"] = event_view
         context["all_event_type"] = all_event_type
         request_debug = _debug_tools_requested(self.request)

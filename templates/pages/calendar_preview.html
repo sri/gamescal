@@ -64,12 +64,9 @@
                 </td>
                 <td>
                   {% if event.location %}
-                    <div class="event-location-links">
-                      <a class="map-link location-chip" href="{{ destination|google_maps_directions:event.directions_origin }}" target="_blank" rel="noopener noreferrer" title="{% if event.directions_origin %}Directions from the previous game in Google Maps{% else %}Get directions in Google Maps{% endif %}">
-                        <span class="location-color-dot" aria-hidden="true"></span>{% if event.directions_origin %}<span class="visually-hidden">Directions from the previous game to </span>{% endif %}{{ event.location }} <span aria-hidden="true">↗</span>
-                      </a>
-                      {% include 'pages/_restaurant_links.html' %}
-                    </div>
+                    <a class="map-link location-chip" href="{{ destination|google_maps_directions:event.directions_origin }}" target="_blank" rel="noopener noreferrer" title="{% if event.directions_origin %}Directions from the previous game in Google Maps{% else %}Get directions in Google Maps{% endif %}">
+                      <span class="location-color-dot" aria-hidden="true"></span>{% if event.directions_origin %}<span class="visually-hidden">Directions from the previous game to </span>{% endif %}{{ event.location }} <span aria-hidden="true">↗</span>
+                    </a>
                   {% else %}
                     <span class="text-body-secondary">—</span>
                   {% endif %}

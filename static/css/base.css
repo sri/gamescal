@@ -413,11 +413,6 @@ html[data-theme]:not([data-theme="default"]) .event-location-colored {
   --bs-table-hover-bg: color-mix(in srgb, var(--theme-location-color) 16%, var(--theme-surface-deep));
 }
 
-html[data-theme]:not([data-theme="default"]) .event-location-colored > td:first-child,
-html[data-theme]:not([data-theme="default"]) .mobile-event-location-colored {
-  border-left-color: var(--theme-location-color);
-}
-
 html[data-theme]:not([data-theme="default"]) .mobile-event-location-colored {
   background: color-mix(in srgb, var(--theme-location-color) 9%, var(--theme-surface-deep));
 }
@@ -442,11 +437,6 @@ html[data-theme]:not([data-theme="default"]) .location-color-dot {
 html[data-theme]:not([data-theme="default"]) .event-external-calendar {
   --bs-table-bg: var(--theme-surface-deep);
   --bs-table-hover-bg: var(--theme-surface);
-}
-
-html[data-theme]:not([data-theme="default"]) .event-external-calendar > td:first-child,
-html[data-theme]:not([data-theme="default"]) .mobile-event-external-calendar {
-  border-left-color: var(--theme-muted);
 }
 
 html[data-theme]:not([data-theme="default"]) .mobile-event-external-calendar {
@@ -896,17 +886,9 @@ a {
   --bs-table-hover-bg: hsl(var(--location-hue) 70% 94%);
 }
 
-.event-location-colored > td:first-child {
-  border-left: 0.35rem solid hsl(var(--location-hue) 68% 48%);
-}
-
 .event-external-calendar {
   --bs-table-bg: #f5f5f4;
   --bs-table-hover-bg: #eeeeec;
-}
-
-.event-external-calendar > td:first-child {
-  border-left: 0.35rem solid #a8a29e;
 }
 
 .event-external-calendar .location-chip {
@@ -950,29 +932,53 @@ a {
   text-decoration-color: currentColor;
 }
 
-.event-location-links {
+.food-nearby {
+  margin-block: 2rem;
+}
+
+.food-location-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.food-location-card {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.75rem;
+  background: var(--bs-tertiary-bg);
+}
+
+.food-location-address {
   display: flex;
-  align-items: center;
   flex-wrap: wrap;
-  gap: 0.4rem 0.65rem;
+  gap: 0.25rem 0.6rem;
 }
 
-.restaurant-links {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  color: var(--bs-secondary-color);
-  font-size: 0.75rem;
-  white-space: nowrap;
-}
-
-.restaurant-links a {
-  color: var(--bs-link-color);
+.food-location-address a {
+  color: var(--bs-body-color);
   text-underline-offset: 0.15em;
 }
 
-.restaurant-links a:hover {
-  color: var(--bs-link-hover-color);
+.food-search-options {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.55rem;
+  font-size: 0.85rem;
+}
+
+.food-search-option {
+  white-space: nowrap;
+}
+
+.food-search-option a {
+  text-underline-offset: 0.15em;
+}
+
+.food-search-divider {
+  color: var(--bs-border-color);
 }
 
 .location-chip {
@@ -1039,12 +1045,10 @@ a {
 }
 
 .mobile-event-location-colored {
-  border-left: 0.35rem solid hsl(var(--location-hue) 68% 48%);
   background: hsl(var(--location-hue) 72% 98%);
 }
 
 .mobile-event-external-calendar {
-  border-left: 0.35rem solid #a8a29e;
   box-shadow: 0 0.15rem 0.5rem rgb(87 83 78 / 8%);
   background: #f5f5f4;
 }
@@ -1162,19 +1166,6 @@ a {
 
 .mobile-event-title a {
   color: inherit;
-}
-
-.mobile-location-group {
-  margin: 0 0.9rem 0.9rem;
-}
-
-.mobile-location-group .mobile-location-link {
-  margin: 0;
-}
-
-.mobile-location-group .restaurant-links {
-  margin-top: 0.45rem;
-  padding-inline: 0.25rem;
 }
 
 .mobile-location-link {

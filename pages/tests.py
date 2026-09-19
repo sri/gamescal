@@ -27,9 +27,9 @@ from .services import (
 from .templatetags.calendar_tags import (
     COOL_LOCATION_HUES,
     google_maps_directions,
-    google_maps_restaurants,
+    google_maps_food_search,
     location_hue,
-    yelp_restaurants,
+    yelp_food_search,
 )
 
 
@@ -89,37 +89,60 @@ class PageTests(TestCase):
         self.assertContains(response, "API Logs")
 
     @patch("pages.views.timezone.now", return_value=TEST_NOW)
-    def test_event_addresses_link_to_restaurant_searches(self, _mocked_now):
+    def test_games_and_practices_show_deduplicated_food_searches(self, _mocked_now):
         calendar = Calendar.objects.create(
             name="League",
-            cal_url="https://example.com/restaurants.ics",
+            cal_url="https://example.com/food.ics",
             is_mine=True,
         )
+        for index in range(2):
+            CalendarEvent.objects.create(
+                calendar=calendar,
+                external_uid=f"game-food-{index}",
+                title=f"Falcons game {index}",
+                starts_at=TEST_NOW + timedelta(days=1, hours=index),
+                ends_at=TEST_NOW + timedelta(days=1, hours=index + 1),
+                event_type=CalendarEvent.EventType.GAME,
+                location="Central Stadium",
+                address="123 Main St, Phoenix, AZ",
+            )
         CalendarEvent.objects.create(
             calendar=calendar,
-            external_uid="restaurant-links",
-            title="Falcons game",
-            starts_at=TEST_NOW + timedelta(days=1),
-            ends_at=TEST_NOW + timedelta(days=1, hours=1),
-            event_type=CalendarEvent.EventType.GAME,
-            location="Central Stadium",
-            address="123 Main St, Phoenix, AZ",
+            external_uid="practice-food",
+            title="Falcons practice",
+            starts_at=TEST_NOW + timedelta(days=2),
+            ends_at=TEST_NOW + timedelta(days=2, hours=1),
+            event_type=CalendarEvent.EventType.PRACTICE,
+            location="Practice Gym",
+            address="456 Oak Ave, Phoenix, AZ",
         )
 
-        response = self.client.get(reverse("home"))
+        games = self.client.get(reverse("home"), {"view": "games"})
 
+        self.assertEqual(len(games.context["food_locations"]), 1)
+        self.assertContains(games, 'id="food-nearby-heading"')
+        for label in ("🍔 Fast Food", "🌯 Chipotle", "🍕 Pizza", "🍽️ Restaurants"):
+            self.assertContains(games, label)
         self.assertContains(
-            response,
-            "https://www.yelp.com/search?find_desc=Restaurants&amp;find_loc=123+Main+St%2C+Phoenix%2C+AZ",
-            count=2,
+            games,
+            "https://www.yelp.com/search?find_desc=Fast+Food&amp;find_loc=123+Main+St%2C+Phoenix%2C+AZ",
         )
         self.assertContains(
-            response,
-            "https://www.google.com/maps/search/?api=1&amp;query=restaurants+near+123+Main+St%2C+Phoenix%2C+AZ",
-            count=2,
+            games,
+            "https://www.google.com/maps/search/?api=1&amp;query=Chipotle+near+123+Main+St%2C+Phoenix%2C+AZ",
         )
-        self.assertContains(response, ">Yelp</a>", count=2)
-        self.assertContains(response, ">GMaps</a>", count=2)
+        self.assertContains(games, ">Yelp</a>", count=4)
+        self.assertContains(games, ">GMaps</a>", count=4)
+
+        practices = self.client.get(reverse("home"), {"view": "practices"})
+        self.assertEqual(len(practices.context["food_locations"]), 1)
+        self.assertContains(practices, "456 Oak Ave, Phoenix, AZ")
+        self.assertNotContains(practices, "123 Main St, Phoenix, AZ")
+        self.assertContains(practices, 'id="food-nearby-heading"')
+
+        all_events = self.client.get(reverse("home"), {"view": "all"})
+        self.assertEqual(all_events.context["food_locations"], [])
+        self.assertNotContains(all_events, 'id="food-nearby-heading"')
 
     @override_settings(ENABLE_API_LOG_VIEW=False, ENABLE_DEMO_TOOLS=False)
     def test_debug_query_enables_developer_tools(self):
@@ -380,6 +403,35 @@ class PageTests(TestCase):
         self.assertContains(
             response, 'href="https://example.com/fallback.ics"', count=2
         )
+
+    @patch("pages.views.timezone.now")
+    def test_games_remain_visible_for_the_entire_local_day(self, mocked_now):
+        arizona = ZoneInfo("America/Phoenix")
+        mocked_now.return_value = datetime(2026, 8, 15, 13, 0, tzinfo=arizona)
+        calendar = Calendar.objects.create(
+            name="Saturday league",
+            cal_url="https://example.com/saturday.ics",
+            is_mine=True,
+        )
+        for title, starts_at in (
+            ("Saturday morning game", datetime(2026, 8, 15, 8, 0, tzinfo=arizona)),
+            ("Friday game", datetime(2026, 8, 14, 18, 0, tzinfo=arizona)),
+        ):
+            CalendarEvent.objects.create(
+                calendar=calendar,
+                external_uid=title,
+                title=title,
+                starts_at=starts_at,
+                ends_at=starts_at + timedelta(hours=1),
+                event_type=CalendarEvent.EventType.GAME,
+            )
+
+        games = self.client.get(reverse("home"), {"view": "games"})
+        all_events = self.client.get(reverse("home"), {"view": "all"})
+
+        self.assertContains(games, "Saturday morning game")
+        self.assertNotContains(games, "Friday game")
+        self.assertContains(all_events, "Saturday morning game")
 
     @patch("pages.views.timezone.now")
     def test_home_event_type_views_and_week_filter(self, mocked_now):
@@ -1617,19 +1669,19 @@ class CalendarParsingTests(TestCase):
             "https://www.google.com/maps/dir/?api=1&origin=Central+Stadium&destination=North+Field",
         )
 
-    def test_restaurant_search_urls(self):
+    def test_food_search_urls(self):
         address = "123 Main St, Phoenix, AZ"
 
         self.assertEqual(
-            yelp_restaurants(address),
-            "https://www.yelp.com/search?find_desc=Restaurants&find_loc=123+Main+St%2C+Phoenix%2C+AZ",
+            yelp_food_search(address, "Fast Food"),
+            "https://www.yelp.com/search?find_desc=Fast+Food&find_loc=123+Main+St%2C+Phoenix%2C+AZ",
         )
         self.assertEqual(
-            google_maps_restaurants(address),
-            "https://www.google.com/maps/search/?api=1&query=restaurants+near+123+Main+St%2C+Phoenix%2C+AZ",
+            google_maps_food_search(address, "Pizza"),
+            "https://www.google.com/maps/search/?api=1&query=Pizza+near+123+Main+St%2C+Phoenix%2C+AZ",
         )
-        self.assertEqual(yelp_restaurants(""), "")
-        self.assertEqual(google_maps_restaurants(None), "")
+        self.assertEqual(yelp_food_search("", "Restaurants"), "")
+        self.assertEqual(google_maps_food_search(None, "Chipotle"), "")
 
     def test_parse_calendar_extracts_events_and_expands_recurrence(self):
         content = b"""BEGIN:VCALENDAR\r
