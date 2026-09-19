@@ -164,6 +164,8 @@
                 </td>
                 <td class="text-nowrap">
                   {% if event.is_all_day %}<span class="text-body-secondary">All day</span>{% else %}{{ local_start|time:"g:i A" }}{% endif %}
+                  <div class="small mt-1"><a href="{% url 'event_edit_times' event.pk %}" aria-label="Edit times for {{ event.title }}">Edit times</a></div>
+                  {% if event.source_starts_at %}<span class="badge text-bg-info mt-1">Manual time</span>{% endif %}
                 </td>
                 <td class="event-title-cell">
                   <div class="fw-semibold">
@@ -228,6 +230,8 @@
               <div class="d-flex align-items-center gap-2 flex-wrap">
                 <span class="badge event-type-{{ event.event_type }}">{{ event.get_event_type_display }}</span>
                 {% if event.calendar.is_mine %}<span class="badge text-bg-primary">Mine</span>{% endif %}
+                {% if event.source_starts_at %}<span class="badge text-bg-info">Manual time</span>{% endif %}
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'event_edit_times' event.pk %}" aria-label="Edit times for {{ event.title }}">Edit times</a>
                 {% if event.status != 'confirmed' %}<span class="badge text-bg-warning">{{ event.get_status_display }}</span>{% endif %}
               </div>
               {% if event.schedule_conflict %}

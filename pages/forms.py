@@ -118,6 +118,46 @@ class CalendarEditForm(forms.ModelForm):
         }
 
 
+class EventTimeForm(forms.Form):
+    starts_at = forms.DateTimeField(
+        label="Starts at",
+        widget=forms.DateTimeInput(
+            format="%Y-%m-%dT%H:%M:%S",
+            attrs={"type": "datetime-local", "class": "form-control", "step": "1"},
+        ),
+    )
+    ends_at = forms.DateTimeField(
+        label="Ends at",
+        widget=forms.DateTimeInput(
+            format="%Y-%m-%dT%H:%M:%S",
+            attrs={"type": "datetime-local", "class": "form-control", "step": "1"},
+        ),
+    )
+    is_all_day = forms.BooleanField(
+        required=False,
+        label="All day",
+        help_text=(
+            "For all-day events, use midnight at the start and midnight after the last day."
+        ),
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )
+
+    def clean(self):
+        data = super().clean()
+        start, end = data.get("starts_at"), data.get("ends_at")
+        if start and end:
+            if end <= start:
+                self.add_error("ends_at", "End must be after start.")
+            if data.get("is_all_day") and (
+                any((start.hour, start.minute, start.second, start.microsecond))
+                or any((end.hour, end.minute, end.second, end.microsecond))
+            ):
+                raise forms.ValidationError(
+                    "All-day events must start and end at midnight."
+                )
+        return data
+
+
 class SavedLinkForm(forms.ModelForm):
     class Meta:
         model = SavedLink

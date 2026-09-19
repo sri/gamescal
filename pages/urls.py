@@ -17,11 +17,13 @@ from .views import (
     delete_saved_link,
     edit_calendar_rule,
     edit_calendar_visibility_rule,
+    edit_event_times,
     edit_saved_link,
     geoapify_api_logs,
     populate_demo_calendar,
     refresh_all_calendars,
     refresh_calendar,
+    reset_event_times,
     toggle_calendar,
     toggle_calendar_rule,
     toggle_calendar_visibility_rule,
@@ -31,6 +33,8 @@ from .views import (
 urlpatterns = [
     path("", HomePageView.as_view(), name="home"),
     path("about/", AboutPageView.as_view(), name="about"),
+    path("events/<int:pk>/times/", edit_event_times, name="event_edit_times"),
+    path("events/<int:pk>/times/reset/", reset_event_times, name="event_reset_times"),
     path("developer/geoapify-logs/", geoapify_api_logs, name="geoapify_api_logs"),
     path(
         "developer/geoapify-logs/clear/",

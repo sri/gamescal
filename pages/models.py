@@ -90,6 +90,9 @@ class CalendarEvent(models.Model):
     is_mine = models.BooleanField(default=False, db_index=True)
     is_visible = models.BooleanField(default=True, db_index=True)
     raw_data = models.JSONField(default=dict, blank=True)
+    source_starts_at = models.DateTimeField(null=True, blank=True, editable=False)
+    source_ends_at = models.DateTimeField(null=True, blank=True, editable=False)
+    source_is_all_day = models.BooleanField(null=True, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -104,6 +107,27 @@ class CalendarEvent(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class EventTimeOverride(models.Model):
+    """Manual times keyed by feed identity so replacing events preserves edits."""
+
+    calendar = models.ForeignKey(
+        Calendar, on_delete=models.CASCADE, related_name="time_overrides"
+    )
+    external_uid = models.CharField(max_length=255)
+    recurrence_id = models.CharField(max_length=255, blank=True)
+    starts_at = models.DateTimeField()
+    ends_at = models.DateTimeField()
+    is_all_day = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["calendar", "external_uid", "recurrence_id"],
+                name="unique_event_time_override",
+            )
+        ]
 
 
 class GeocodedLocation(models.Model):

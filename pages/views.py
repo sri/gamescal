@@ -14,7 +14,7 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
 from django.views.generic import TemplateView
 
 from .forms import (
@@ -22,6 +22,7 @@ from .forms import (
     CalendarEventRuleForm,
     CalendarImportForm,
     CalendarVisibilityRuleForm,
+    EventTimeForm,
     SavedLinkForm,
 )
 from .models import (
@@ -29,6 +30,7 @@ from .models import (
     CalendarEvent,
     CalendarEventRule,
     CalendarVisibilityRule,
+    EventTimeOverride,
     GeoapifyAPILog,
     SavedLink,
 )
@@ -234,7 +236,13 @@ def _annotate_game_gaps(events):
         if not _same_game_day(current, following):
             continue
 
-        gap = following.starts_at - (current.starts_at + GAME_DURATION)
+        # Keep the usual duration estimate unless the user supplied an end time.
+        ends_at = (
+            current.ends_at
+            if getattr(current, "source_starts_at", None) is not None
+            else current.starts_at + GAME_DURATION
+        )
+        gap = following.starts_at - ends_at
         if gap.total_seconds() <= 0:
             continue
         total_minutes = max(1, int((gap.total_seconds() + 30) // 60))
@@ -688,11 +696,35 @@ def _preview_from_session(request, token):
     return preview, ImportResult.from_session(preview["result"])
 
 
+def _time_overrides(calendar):
+    return {
+        (override.external_uid, override.recurrence_id): override
+        for override in calendar.time_overrides.all()
+    }
+
+
+def _apply_time_override(event, override):
+    if override is not None:
+        event.source_starts_at = event.starts_at
+        event.source_ends_at = event.ends_at
+        event.source_is_all_day = event.is_all_day
+        event.starts_at = override.starts_at
+        event.ends_at = override.ends_at
+        event.is_all_day = override.is_all_day
+    return event
+
+
 def calendar_preview(request, token):
     preview, result = _preview_from_session(request, token)
     is_replacement = preview.get("mode") == "replace"
     if is_replacement:
         calendar = get_object_or_404(Calendar, pk=preview.get("calendar_id"))
+        overrides = _time_overrides(calendar)
+        for event in result.events:
+            _apply_time_override(
+                event, overrides.get((event.external_uid, event.recurrence_id))
+            )
+        result.events.sort(key=lambda event: (event.starts_at, event.title))
         cancel_url = reverse("calendar_edit", kwargs={"pk": calendar.pk})
     else:
         cancel_url = reverse("calendar_add")
@@ -722,10 +754,10 @@ def calendar_preview(request, token):
     )
 
 
-def _event_model(calendar, event, rules=(), visibility_rules=()):
+def _event_model(calendar, event, rules=(), visibility_rules=(), time_override=None):
     valid_statuses = {value for value, _label in CalendarEvent.Status.choices}
     status = event.status if event.status in valid_statuses else CalendarEvent.Status.CONFIRMED
-    return CalendarEvent(
+    model = CalendarEvent(
         calendar=calendar,
         external_uid=event.external_uid,
         recurrence_id=event.recurrence_id,
@@ -745,6 +777,7 @@ def _event_model(calendar, event, rules=(), visibility_rules=()):
         is_visible=visibility_for_event(event, visibility_rules)[0],
         raw_data=event.raw_data,
     )
+    return _apply_time_override(model, time_override)
 
 
 @require_POST
@@ -799,6 +832,67 @@ def _reclassify_calendar_interest(calendar):
     return len(changed)
 
 
+@require_http_methods(["GET", "POST"])
+def edit_event_times(request, pk):
+    with transaction.atomic():
+        event = get_object_or_404(
+            CalendarEvent.objects.select_related("calendar").select_for_update(), pk=pk
+        )
+        with timezone.override(ZoneInfo(event.calendar.timezone)):
+            form = EventTimeForm(
+                request.POST if request.method == "POST" else None,
+                initial={
+                    "starts_at": event.starts_at,
+                    "ends_at": event.ends_at,
+                    "is_all_day": event.is_all_day,
+                },
+            )
+            if request.method == "POST" and form.is_valid():
+                EventTimeOverride.objects.update_or_create(
+                    calendar=event.calendar,
+                    external_uid=event.external_uid,
+                    recurrence_id=event.recurrence_id,
+                    defaults=form.cleaned_data,
+                )
+                if event.source_starts_at is None:
+                    event.source_starts_at = event.starts_at
+                    event.source_ends_at = event.ends_at
+                    event.source_is_all_day = event.is_all_day
+                event.starts_at = form.cleaned_data["starts_at"]
+                event.ends_at = form.cleaned_data["ends_at"]
+                event.is_all_day = form.cleaned_data["is_all_day"]
+                event.save()
+                messages.success(
+                    request,
+                    "Saved manual times. Calendar refreshes will keep your changes.",
+                )
+                return redirect("event_edit_times", pk=event.pk)
+            return render(
+                request, "pages/event_times.html", {"event": event, "form": form}
+            )
+
+
+@require_POST
+def reset_event_times(request, pk):
+    with transaction.atomic():
+        event = get_object_or_404(CalendarEvent.objects.select_for_update(), pk=pk)
+        EventTimeOverride.objects.filter(
+            calendar=event.calendar,
+            external_uid=event.external_uid,
+            recurrence_id=event.recurrence_id,
+        ).delete()
+        if event.source_starts_at is not None:
+            event.starts_at = event.source_starts_at
+            event.ends_at = event.source_ends_at
+            event.is_all_day = event.source_is_all_day
+            event.source_starts_at = None
+            event.source_ends_at = None
+            event.source_is_all_day = None
+            event.save()
+    messages.success(request, "Restored the latest imported calendar times.")
+    return redirect("event_edit_times", pk=event.pk)
+
+
 def calendar_edit(request, pk):
     calendar = get_object_or_404(Calendar, pk=pk)
     if request.method == "POST":
@@ -851,10 +945,17 @@ def _replace_calendar_events(calendar, result):
     with transaction.atomic():
         rules = list(calendar.event_rules.filter(is_active=True))
         visibility_rules = list(calendar.visibility_rules.filter(is_active=True))
+        overrides = _time_overrides(calendar)
         calendar.events.all().delete()
         CalendarEvent.objects.bulk_create(
             [
-                _event_model(calendar, event, rules, visibility_rules)
+                _event_model(
+                    calendar,
+                    event,
+                    rules,
+                    visibility_rules,
+                    time_override=overrides.get((event.external_uid, event.recurrence_id)),
+                )
                 for event in result.events
             ]
         )

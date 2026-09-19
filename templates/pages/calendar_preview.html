@@ -53,6 +53,7 @@
                 <td class="text-nowrap">{% if event.is_all_day %}All day{% else %}{{ local_start|time:"g:i A" }}{% endif %}</td>
                 <td class="event-title-cell">
                   <div class="fw-semibold">{{ event.title }}</div>
+                  {% if event.source_starts_at %}<span class="badge text-bg-info">Manual time</span>{% endif %}
                   {% if event.team1 and event.team2 %}<div class="small text-body-secondary">{{ event.team1 }} vs {{ event.team2 }}</div>{% endif %}
                   <span class="badge event-type-{{ event.event_type }} mt-1">{{ event.event_type|title }}</span>
                   {% if event.game_gap_after %}
