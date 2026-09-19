@@ -359,18 +359,27 @@ class HomePageView(TemplateView):
             week_start_date, time.min, tzinfo=local_timezone
         )
         week_end = week_start + timedelta(days=7)
+        practice_week_start = week_start
+        if local_today.weekday() >= 4:  # On Friday, roll practices to next week.
+            practice_week_start += timedelta(days=7)
+        practice_week_end = practice_week_start + timedelta(days=7)
+
         upcoming_events = CalendarEvent.objects.select_related("calendar").filter(
             calendar__is_active=True,
             is_visible=True,
             ends_at__gt=today_start,
         )
-        week_events = upcoming_events.filter(
+        game_week_events = upcoming_events.filter(
             starts_at__gte=week_start,
             starts_at__lt=week_end,
         )
+        practice_week_events = upcoming_events.filter(
+            starts_at__gte=practice_week_start,
+            starts_at__lt=practice_week_end,
+        )
 
         requested_view = self.request.GET.get("view")
-        default_week_events = week_events
+        default_week_events = game_week_events
         if event_scope == "mine":
             default_week_events = default_week_events.filter(calendar__is_mine=True)
         elif event_scope == "others":
@@ -383,7 +392,12 @@ class HomePageView(TemplateView):
         else:
             event_view = "practices"
 
-        events = week_events if event_view in {"games", "practices"} else upcoming_events
+        if event_view == "games":
+            events = game_week_events
+        elif event_view == "practices":
+            events = practice_week_events
+        else:
+            events = upcoming_events
 
         if event_scope == "mine":
             events = events.filter(calendar__is_mine=True)

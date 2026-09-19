@@ -496,6 +496,53 @@ class PageTests(TestCase):
         self.assertContains(games, "Noon TBD game")
 
     @patch("pages.views.timezone.now")
+    def test_practices_roll_to_next_week_on_friday(self, mocked_now):
+        arizona = ZoneInfo("America/Phoenix")
+        mocked_now.return_value = datetime(2026, 8, 13, 20, 0, tzinfo=arizona)
+        calendar = Calendar.objects.create(
+            name="Practice schedule",
+            cal_url="https://example.com/practice-rollover.ics",
+            timezone="America/Phoenix",
+            is_mine=True,
+        )
+        for title, starts_at in (
+            (
+                "Current Thursday practice",
+                datetime(2026, 8, 13, 18, 0, tzinfo=arizona),
+            ),
+            (
+                "Next Tuesday practice",
+                datetime(2026, 8, 18, 18, 0, tzinfo=arizona),
+            ),
+            (
+                "Next Thursday practice",
+                datetime(2026, 8, 20, 18, 0, tzinfo=arizona),
+            ),
+        ):
+            CalendarEvent.objects.create(
+                calendar=calendar,
+                external_uid=title,
+                title=title,
+                starts_at=starts_at,
+                ends_at=starts_at + timedelta(hours=1),
+                event_type=CalendarEvent.EventType.PRACTICE,
+            )
+
+        mocked_now.return_value = datetime(2026, 8, 13, 20, 0, tzinfo=arizona)
+        thursday = self.client.get(reverse("home"), {"view": "practices"})
+
+        self.assertContains(thursday, "Current Thursday practice")
+        self.assertNotContains(thursday, "Next Tuesday practice")
+        self.assertNotContains(thursday, "Next Thursday practice")
+
+        mocked_now.return_value = datetime(2026, 8, 14, 9, 0, tzinfo=arizona)
+        friday = self.client.get(reverse("home"), {"view": "practices"})
+
+        self.assertNotContains(friday, "Current Thursday practice")
+        self.assertContains(friday, "Next Tuesday practice")
+        self.assertContains(friday, "Next Thursday practice")
+
+    @patch("pages.views.timezone.now")
     def test_home_event_type_views_and_week_filter(self, mocked_now):
         mocked_now.return_value = datetime(
             2026, 8, 12, 16, 0, tzinfo=dt_timezone.utc
