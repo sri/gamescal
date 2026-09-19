@@ -491,7 +491,7 @@ class PageTests(TestCase):
         all_events = self.client.get(reverse("home"), {"view": "all"})
 
         self.assertNotContains(games, "Midnight TBD placeholder")
-        self.assertNotContains(all_events, "Midnight TBD placeholder")
+        self.assertContains(all_events, "Midnight TBD placeholder")
         self.assertContains(games, "Real midnight game")
         self.assertContains(games, "Noon TBD game")
 

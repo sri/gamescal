@@ -414,7 +414,8 @@ class HomePageView(TemplateView):
             events = events.filter(event_type=CalendarEvent.EventType.PRACTICE)
 
         events = list(events.order_by("starts_at", "title")[:2000])
-        events = [event for event in events if not _is_placeholder_game(event)]
+        if event_view == "games":
+            events = [event for event in events if not _is_placeholder_game(event)]
         events = _annotate_schedule_conflicts(events[:500])
         events = _annotate_game_gaps(events)
         _annotate_game_directions(events)
