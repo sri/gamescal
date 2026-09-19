@@ -29,6 +29,7 @@ class CalendarEventInline(admin.TabularInline):
         "event_type",
         "is_mine",
         "is_visible",
+        "is_manual",
         "status",
     )
     extra = 0
@@ -68,6 +69,7 @@ class CalendarEventAdmin(admin.ModelAdmin):
         "event_type",
         "is_mine",
         "is_visible",
+        "is_manual",
         "status",
     )
     list_filter = (
@@ -75,6 +77,7 @@ class CalendarEventAdmin(admin.ModelAdmin):
         "event_type",
         "is_mine",
         "is_visible",
+        "is_manual",
         "status",
         "is_all_day",
     )

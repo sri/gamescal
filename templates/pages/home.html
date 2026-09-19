@@ -173,7 +173,9 @@
                   {% if event.team1 and event.team2 %}<div class="small text-body-secondary">{{ event.team1 }} vs {{ event.team2 }}</div>{% endif %}
                   <span class="badge event-type-{{ event.event_type }} mt-1">{{ event.get_event_type_display }}</span>
                   {% if event.calendar.is_mine %}<span class="badge text-bg-primary mt-1">Mine</span>{% endif %}
+                  {% if event.is_manual %}<span class="badge text-bg-secondary mt-1">Manual</span>{% endif %}
                   {% if event.status != 'confirmed' %}<span class="badge text-bg-warning mt-1">{{ event.get_status_display }}</span>{% endif %}
+                  <div>{% include 'pages/_followup_game_button.html' %}</div>
                   {% if event.schedule_conflict %}
                     <div class="schedule-conflict mt-2" title="{{ event.schedule_conflict_details }}">
                       <span class="badge text-bg-danger">⚠ Schedule conflict</span>
@@ -229,8 +231,10 @@
               <div class="d-flex align-items-center gap-2 flex-wrap">
                 <span class="badge event-type-{{ event.event_type }}">{{ event.get_event_type_display }}</span>
                 {% if event.calendar.is_mine %}<span class="badge text-bg-primary">Mine</span>{% endif %}
+                {% if event.is_manual %}<span class="badge text-bg-secondary">Manual</span>{% endif %}
                 {% if event.status != 'confirmed' %}<span class="badge text-bg-warning">{{ event.get_status_display }}</span>{% endif %}
               </div>
+              {% include 'pages/_followup_game_button.html' %}
               {% if event.schedule_conflict %}
                 <div class="schedule-conflict mt-2" title="{{ event.schedule_conflict_details }}">
                   <span class="badge text-bg-danger">⚠ Schedule conflict</span>

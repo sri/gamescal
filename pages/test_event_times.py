@@ -51,6 +51,90 @@ class EventTimeTests(TestCase):
             )],
         )
 
+    @patch("pages.views.timezone.now", return_value=NOW)
+    def test_game_has_button_that_adds_an_editable_tentative_followup(self, _now):
+        self.event.location = "Playoff Arena"
+        self.event.address = "123 Bracket Way"
+        self.event.team1 = "My Team"
+        self.event.team2 = "First Opponent"
+        self.event.save()
+        add_url = reverse("event_add_followup", kwargs={"pk": self.event.pk})
+
+        home = self.client.get(reverse("home"), {"view": "all", "scope": "all"})
+        self.assertContains(home, add_url, count=2)
+        self.assertContains(home, "+ Add playoff game", count=2)
+        self.assertEqual(self.client.get(add_url).status_code, 405)
+
+        response = self.client.post(add_url)
+        followup = CalendarEvent.objects.exclude(pk=self.event.pk).get()
+
+        self.assertRedirects(
+            response, reverse("event_edit_times", kwargs={"pk": followup.pk})
+        )
+        self.assertEqual(followup.title, "Next Playoff game, if advanced")
+        self.assertEqual(followup.starts_at, self.event.starts_at)
+        self.assertEqual(followup.ends_at, self.event.starts_at + timedelta(minutes=50))
+        self.assertEqual(followup.location, "Playoff Arena")
+        self.assertEqual(followup.address, "123 Bracket Way")
+        self.assertEqual(followup.event_type, CalendarEvent.EventType.GAME)
+        self.assertEqual(followup.status, CalendarEvent.Status.TENTATIVE)
+        self.assertTrue(followup.is_manual)
+        self.assertEqual(followup.team1, "")
+        self.assertEqual(followup.team2, "")
+
+        edit_page = self.client.get(response.url)
+        self.assertContains(edit_page, "manually added tentative game")
+        self.assertContains(edit_page, "Delete playoff game")
+        self.client.post(response.url, self.manual_data)
+        followup.refresh_from_db()
+        self.assertEqual(followup.starts_at.hour, 17)
+        self.assertEqual(followup.starts_at.minute, 30)
+        self.assertFalse(EventTimeOverride.objects.exists())
+        self.assertIsNone(followup.source_starts_at)
+
+        home = self.client.get(reverse("home"), {"view": "all", "scope": "all"})
+        self.assertContains(home, "Manual", count=2)
+        self.assertContains(home, "Tentative", count=2)
+        self.assertContains(home, add_url, count=2)
+
+    @patch("pages.views.fetch_and_parse_calendar")
+    def test_manual_followup_survives_refresh_and_can_be_deleted(self, fetch):
+        self.client.post(reverse("event_add_followup", kwargs={"pk": self.event.pk}))
+        followup = CalendarEvent.objects.get(is_manual=True)
+        fetch.return_value = self.feed_result()
+
+        preview_response = self.client.post(
+            reverse("calendar_refresh", kwargs={"pk": self.calendar.pk})
+        )
+        self.assertEqual(list(self.calendar.events.all()), [followup])
+        token = preview_response.url.split("/")[-2]
+        self.client.post(reverse("calendar_confirm", kwargs={"token": token}))
+        self.assertEqual(self.calendar.events.count(), 2)
+        self.assertTrue(self.calendar.events.get(pk=followup.pk).is_manual)
+
+        imported = self.calendar.events.get(is_manual=False)
+        delete_url = reverse("event_delete_manual", kwargs={"pk": followup.pk})
+        self.assertEqual(self.client.get(delete_url).status_code, 405)
+        self.assertEqual(
+            self.client.post(
+                reverse("event_delete_manual", kwargs={"pk": imported.pk})
+            ).status_code,
+            404,
+        )
+        response = self.client.post(delete_url)
+        self.assertRedirects(response, f'{reverse("home")}?view=games&scope=all')
+        self.assertFalse(CalendarEvent.objects.filter(pk=followup.pk).exists())
+        self.assertTrue(CalendarEvent.objects.filter(pk=imported.pk).exists())
+
+    def test_followup_can_only_be_added_to_a_game(self):
+        self.event.event_type = CalendarEvent.EventType.PRACTICE
+        self.event.save()
+        response = self.client.post(
+            reverse("event_add_followup", kwargs={"pk": self.event.pk})
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(CalendarEvent.objects.count(), 1)
+
     def test_edit_form_uses_calendar_timezone_and_does_not_change_on_get(self):
         self.event.starts_at = self.event.starts_at.replace(second=37, microsecond=123456)
         self.event.save()

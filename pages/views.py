@@ -1,5 +1,6 @@
 import re
 import secrets
+import uuid
 from datetime import datetime, time, timedelta
 from pathlib import Path
 from urllib.parse import urlencode
@@ -52,6 +53,7 @@ GAME_EVENT_TYPES = {
     CalendarEvent.EventType.TOURNAMENT,
 }
 DEMO_CALENDAR_URL = "https://gamescal.local/travel-demo.ics"
+FOLLOWUP_GAME_TITLE = "Next Playoff game, if advanced"
 
 
 def _debug_tools_requested(request):
@@ -720,7 +722,7 @@ def populate_demo_calendar(request):
                 "last_sync_error": "",
             },
         )
-        calendar.events.all().delete()
+        calendar.events.filter(is_manual=False).delete()
         CalendarEvent.objects.bulk_create(
             [
                 CalendarEvent(
@@ -925,6 +927,45 @@ def _reclassify_calendar_interest(calendar):
     return len(changed)
 
 
+@require_POST
+def add_followup_game(request, pk):
+    source = get_object_or_404(
+        CalendarEvent.objects.select_related("calendar"), pk=pk
+    )
+    if source.event_type not in GAME_EVENT_TYPES:
+        raise Http404
+
+    followup = CalendarEvent.objects.create(
+        calendar=source.calendar,
+        external_uid=f"manual-{uuid.uuid4()}",
+        title=FOLLOWUP_GAME_TITLE,
+        starts_at=source.starts_at,
+        ends_at=source.starts_at + GAME_DURATION,
+        location=source.location,
+        address=source.address,
+        status=CalendarEvent.Status.TENTATIVE,
+        event_type=CalendarEvent.EventType.GAME,
+        is_mine=source.is_mine,
+        is_manual=True,
+        raw_data={"copied_from": source.external_uid},
+    )
+    messages.success(request, "Added a tentative playoff game. Update its start time.")
+    return redirect("event_edit_times", pk=followup.pk)
+
+
+@require_POST
+def delete_manual_event(request, pk):
+    event = get_object_or_404(CalendarEvent, pk=pk, is_manual=True)
+    EventTimeOverride.objects.filter(
+        calendar=event.calendar,
+        external_uid=event.external_uid,
+        recurrence_id=event.recurrence_id,
+    ).delete()
+    event.delete()
+    messages.success(request, "Deleted the manual playoff game.")
+    return redirect(f'{reverse("home")}?view=games&scope=all')
+
+
 @require_http_methods(["GET", "POST"])
 def edit_event_times(request, pk):
     with transaction.atomic():
@@ -941,16 +982,17 @@ def edit_event_times(request, pk):
                 },
             )
             if request.method == "POST" and form.is_valid():
-                EventTimeOverride.objects.update_or_create(
-                    calendar=event.calendar,
-                    external_uid=event.external_uid,
-                    recurrence_id=event.recurrence_id,
-                    defaults=form.cleaned_data,
-                )
-                if event.source_starts_at is None:
-                    event.source_starts_at = event.starts_at
-                    event.source_ends_at = event.ends_at
-                    event.source_is_all_day = event.is_all_day
+                if not event.is_manual:
+                    EventTimeOverride.objects.update_or_create(
+                        calendar=event.calendar,
+                        external_uid=event.external_uid,
+                        recurrence_id=event.recurrence_id,
+                        defaults=form.cleaned_data,
+                    )
+                    if event.source_starts_at is None:
+                        event.source_starts_at = event.starts_at
+                        event.source_ends_at = event.ends_at
+                        event.source_is_all_day = event.is_all_day
                 event.starts_at = form.cleaned_data["starts_at"]
                 event.ends_at = form.cleaned_data["ends_at"]
                 event.is_all_day = form.cleaned_data["is_all_day"]
@@ -1039,7 +1081,7 @@ def _replace_calendar_events(calendar, result):
         rules = list(calendar.event_rules.filter(is_active=True))
         visibility_rules = list(calendar.visibility_rules.filter(is_active=True))
         overrides = _time_overrides(calendar)
-        calendar.events.all().delete()
+        calendar.events.filter(is_manual=False).delete()
         CalendarEvent.objects.bulk_create(
             [
                 _event_model(
@@ -1100,7 +1142,7 @@ def refresh_calendar(request, pk):
         "website_url": calendar.website_url,
         "result": result.to_session(),
     }
-    calendar.events.all().delete()
+    calendar.events.filter(is_manual=False).delete()
     return redirect("calendar_preview", token=token)
 
 
@@ -1170,7 +1212,7 @@ def delete_calendar(request, pk):
 def _reclassify_calendar(calendar):
     rules = list(calendar.event_rules.filter(is_active=True))
     changed = []
-    for event in calendar.events.all():
+    for event in calendar.events.filter(is_manual=False):
         event_type = classify_event(event, rules)
         if event.event_type != event_type:
             event.event_type = event_type
@@ -1184,7 +1226,7 @@ def _reclassify_calendar(calendar):
 def _reapply_calendar_visibility(calendar):
     rules = list(calendar.visibility_rules.all())
     changed = []
-    for event in calendar.events.all():
+    for event in calendar.events.filter(is_manual=False):
         is_visible, _reason, _matched = visibility_for_event(event, rules)
         if event.is_visible != is_visible:
             event.is_visible = is_visible

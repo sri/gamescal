@@ -4,6 +4,7 @@ from .views import (
     AboutPageView,
     HomePageView,
     add_calendar,
+    add_followup_game,
     add_saved_link,
     calendar_edit,
     calendar_preview,
@@ -14,6 +15,7 @@ from .views import (
     delete_calendar,
     delete_calendar_rule,
     delete_calendar_visibility_rule,
+    delete_manual_event,
     delete_saved_link,
     edit_calendar_rule,
     edit_calendar_visibility_rule,
@@ -33,6 +35,16 @@ from .views import (
 urlpatterns = [
     path("", HomePageView.as_view(), name="home"),
     path("about/", AboutPageView.as_view(), name="about"),
+    path(
+        "events/<int:pk>/follow-up/",
+        add_followup_game,
+        name="event_add_followup",
+    ),
+    path(
+        "events/<int:pk>/delete-manual/",
+        delete_manual_event,
+        name="event_delete_manual",
+    ),
     path("events/<int:pk>/times/", edit_event_times, name="event_edit_times"),
     path("events/<int:pk>/times/reset/", reset_event_times, name="event_reset_times"),
     path("developer/geoapify-logs/", geoapify_api_logs, name="geoapify_api_logs"),

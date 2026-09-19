@@ -22,7 +22,7 @@
   </div>
 
   {% if is_replacement %}
-    <div class="alert alert-warning"><strong>The previous events have been deleted.</strong> Only current and future events are shown below. All {{ result.events|length }} downloaded event{{ result.events|length|pluralize }}, including past events, will be added when you approve.</div>
+    <div class="alert alert-warning"><strong>The previous imported events have been deleted.</strong> Manually added events are kept. Only current and future events are shown below. All {{ result.events|length }} downloaded event{{ result.events|length|pluralize }}, including past events, will be added when you approve.</div>
   {% endif %}
   {% for warning in result.warnings %}<div class="alert alert-warning">{{ warning }}</div>{% endfor %}
 

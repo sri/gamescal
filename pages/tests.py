@@ -1067,7 +1067,7 @@ class PageTests(TestCase):
         self.assertContains(preview, "Falcons vs Bears")
         self.assertContains(preview, "Practice")
         self.assertContains(preview, "Approve &amp; Add Events", count=2)
-        self.assertContains(preview, "The previous events have been deleted.")
+        self.assertContains(preview, "The previous imported events have been deleted.")
         self.assertEqual(calendar.events.count(), 0)
 
         confirm = self.client.post(

@@ -89,6 +89,7 @@ class CalendarEvent(models.Model):
     )
     is_mine = models.BooleanField(default=False, db_index=True)
     is_visible = models.BooleanField(default=True, db_index=True)
+    is_manual = models.BooleanField(default=False, db_index=True)
     raw_data = models.JSONField(default=dict, blank=True)
     source_starts_at = models.DateTimeField(null=True, blank=True, editable=False)
     source_ends_at = models.DateTimeField(null=True, blank=True, editable=False)
