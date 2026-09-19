@@ -14,7 +14,8 @@ from .models import (
 
 @admin.register(SavedLink)
 class SavedLinkAdmin(admin.ModelAdmin):
-    list_display = ("name", "url", "updated_at")
+    list_display = ("name", "url", "is_hidden", "updated_at")
+    list_filter = ("is_hidden",)
     search_fields = ("name", "url")
     readonly_fields = ("created_at", "updated_at")
 

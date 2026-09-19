@@ -387,7 +387,9 @@ class HomePageView(TemplateView):
             event_type: event_filter_url("all", event_type=event_type)
             for event_type in ("all", "games", "practices")
         }
-        context["saved_links"] = SavedLink.objects.all()
+        saved_links = list(SavedLink.objects.all())
+        context["managed_saved_links"] = saved_links
+        context["saved_links"] = [link for link in saved_links if not link.is_hidden]
         context["saved_link_form"] = SavedLinkForm()
         context["calendars_expanded"] = (
             self.request.GET.get("calendars") == "open"
@@ -434,6 +436,18 @@ def edit_saved_link(request, pk):
         messages.success(request, "Updated the URL.")
     else:
         messages.error(request, _saved_link_errors(form))
+    return _saved_links_redirect()
+
+
+@require_POST
+def toggle_saved_link(request, pk):
+    link = get_object_or_404(SavedLink, pk=pk)
+    link.is_hidden = not link.is_hidden
+    link.save(update_fields=["is_hidden", "updated_at"])
+    messages.success(
+        request,
+        "Hidden the URL from the footer." if link.is_hidden else "Restored the URL to the footer.",
+    )
     return _saved_links_redirect()
 
 

@@ -25,6 +25,7 @@ from .views import (
     toggle_calendar,
     toggle_calendar_rule,
     toggle_calendar_visibility_rule,
+    toggle_saved_link,
 )
 
 urlpatterns = [
@@ -40,6 +41,7 @@ urlpatterns = [
     path("links/add/", add_saved_link, name="saved_link_add"),
     path("links/<int:pk>/edit/", edit_saved_link, name="saved_link_edit"),
     path("links/<int:pk>/delete/", delete_saved_link, name="saved_link_delete"),
+    path("links/<int:pk>/toggle/", toggle_saved_link, name="saved_link_toggle"),
     path(
         "calendars/refresh-all/",
         refresh_all_calendars,

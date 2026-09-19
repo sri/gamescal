@@ -1323,10 +1323,72 @@ class PageTests(TestCase):
         )
         self.assertContains(response, 'aria-label="Saved links"')
 
+    def test_saved_urls_can_be_hidden_and_restored_without_deleting(self):
+        link = SavedLink.objects.create(
+            name="Season schedule", url="https://example.com/season"
+        )
+        visible_link = SavedLink.objects.create(url="https://example.com/current")
+        toggle_url = reverse("saved_link_toggle", kwargs={"pk": link.pk})
+        self.assertFalse(link.is_hidden)
+
+        response = self.client.post(toggle_url)
+        self.assertRedirects(
+            response,
+            f'{reverse("home")}?calendars=open#calendarsCollapse',
+            fetch_redirect_response=False,
+        )
+        link.refresh_from_db()
+        self.assertTrue(link.is_hidden)
+        home = self.client.get(reverse("home"))
+        self.assertEqual(home.context["saved_links"], [visible_link])
+        self.assertIn(link, home.context["managed_saved_links"])
+        self.assertContains(home, ">Hidden</span>")
+        self.assertContains(home, ">Show</button>")
+        self.assertContains(home, toggle_url)
+        footer = home.content.decode().split('<nav class="footer-saved-links"')[1]
+        footer = footer.split("</nav>")[0]
+        self.assertNotIn(link.url, footer)
+        self.assertIn(visible_link.url, footer)
+
+        self.client.post(toggle_url)
+        link.refresh_from_db()
+        self.assertFalse(link.is_hidden)
+        home = self.client.get(reverse("home"))
+        self.assertContains(home, f'href="{link.url}"', count=2)
+        self.assertEqual(SavedLink.objects.count(), 2)
+
+    def test_editing_hidden_url_preserves_visibility_and_hides_empty_footer_nav(self):
+        link = SavedLink.objects.create(
+            url="https://example.com/season", is_hidden=True
+        )
+        self.client.post(
+            reverse("saved_link_edit", kwargs={"pk": link.pk}),
+            {"name": "Next season", "url": "https://example.com/next-season"},
+        )
+        link.refresh_from_db()
+        self.assertTrue(link.is_hidden)
+        self.assertEqual(link.name, "Next season")
+        home = self.client.get(reverse("home"))
+        self.assertContains(home, "Next season")
+        self.assertNotContains(home, 'class="footer-saved-links"')
+        self.assertNotContains(home, "No saved URLs.")
+
+    def test_toggle_missing_saved_url_returns_not_found(self):
+        response = self.client.post(reverse("saved_link_toggle", kwargs={"pk": 999}))
+        self.assertEqual(response.status_code, 404)
+
     def test_saved_url_actions_require_post(self):
         link = SavedLink.objects.create(url="https://example.com/schedule")
 
         self.assertEqual(self.client.get(reverse("saved_link_add")).status_code, 405)
+        self.assertEqual(
+            self.client.get(
+                reverse("saved_link_toggle", kwargs={"pk": link.pk})
+            ).status_code,
+            405,
+        )
+        link.refresh_from_db()
+        self.assertFalse(link.is_hidden)
         self.assertEqual(
             self.client.get(
                 reverse("saved_link_edit", kwargs={"pk": link.pk})

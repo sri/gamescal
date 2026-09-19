@@ -49,9 +49,15 @@
 
     <div class="saved-links mt-3">
       <div class="small fw-semibold text-uppercase text-body-secondary mb-2">Links</div>
-      {% for link in saved_links %}
+      <p class="small text-body-secondary mb-2">Hide links from the footer between seasons. You can show them again here anytime.</p>
+      {% for link in managed_saved_links %}
         <div class="saved-link-row">
           <a class="saved-link-url" href="{{ link.url }}" target="_blank" rel="noopener noreferrer" title="{{ link.url }}">{% if link.name %}{{ link.name }}{% else %}{{ link.url }}{% endif %} <span aria-hidden="true">↗</span></a>
+          {% if link.is_hidden %}<span class="badge text-bg-secondary">Hidden</span>{% endif %}
+          <form method="post" action="{% url 'saved_link_toggle' link.pk %}">
+            {% csrf_token %}
+            <button class="btn btn-sm btn-outline-secondary" type="submit">{% if link.is_hidden %}Show{% else %}Hide{% endif %}</button>
+          </form>
           <details class="saved-link-edit">
             <summary>Edit</summary>
             <form method="post" action="{% url 'saved_link_edit' link.pk %}" class="saved-link-edit-form">
