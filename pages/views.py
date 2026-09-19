@@ -87,12 +87,15 @@ def _food_locations(events):
     locations = []
     seen = set()
     for event in events:
-        address = str(event.address or event.location or "").strip()
+        location = str(event.location or "").strip()
+        address = str(event.address or location).strip()
         key = _normalized_location(address)
+        if _normalized_location(location) == "tbd" or key == "tbd":
+            continue
         if not key or key in seen:
             continue
         seen.add(key)
-        location = str(event.location or address).strip()
+        location = location or address
         locations.append(
             {
                 "location": location,

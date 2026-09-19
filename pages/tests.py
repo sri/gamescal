@@ -109,6 +109,16 @@ class PageTests(TestCase):
             )
         CalendarEvent.objects.create(
             calendar=calendar,
+            external_uid="tbd-food",
+            title="Game with unknown location",
+            starts_at=TEST_NOW + timedelta(days=1, hours=3),
+            ends_at=TEST_NOW + timedelta(days=1, hours=4),
+            event_type=CalendarEvent.EventType.GAME,
+            location="TBD",
+            address="TBD",
+        )
+        CalendarEvent.objects.create(
+            calendar=calendar,
             external_uid="practice-food",
             title="Falcons practice",
             starts_at=TEST_NOW + timedelta(days=2),
@@ -121,6 +131,12 @@ class PageTests(TestCase):
         games = self.client.get(reverse("home"), {"view": "games"})
 
         self.assertEqual(len(games.context["food_locations"]), 1)
+        self.assertFalse(
+            any(
+                location["address"].casefold() == "tbd"
+                for location in games.context["food_locations"]
+            )
+        )
         self.assertContains(games, 'id="food-nearby-heading"')
         for label in ("🍔 Fast Food", "🌯 Chipotle", "🍕 Pizza", "🍽️ Restaurants"):
             self.assertContains(games, label)
