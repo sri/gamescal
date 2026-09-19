@@ -82,6 +82,16 @@ def _normalized_location(value):
     return " ".join(str(value or "").casefold().split())
 
 
+def _is_placeholder_game(event):
+    if event.event_type not in GAME_EVENT_TYPES:
+        return False
+    if _normalized_location(event.location) != "tbd":
+        return False
+    event_timezone = ZoneInfo(event.calendar.timezone or settings.TIME_ZONE)
+    local_start = timezone.localtime(event.starts_at, event_timezone)
+    return local_start.time() == time.min
+
+
 def _food_locations(events):
     """Return each displayed event destination once, preserving event order."""
     locations = []
@@ -390,6 +400,7 @@ class HomePageView(TemplateView):
             events = events.filter(event_type=CalendarEvent.EventType.PRACTICE)
 
         events = list(events.order_by("starts_at", "title")[:2000])
+        events = [event for event in events if not _is_placeholder_game(event)]
         events = _annotate_schedule_conflicts(events[:500])
         events = _annotate_game_gaps(events)
         _annotate_game_directions(events)

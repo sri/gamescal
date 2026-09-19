@@ -450,6 +450,51 @@ class PageTests(TestCase):
         self.assertNotContains(games, "Friday game")
         self.assertContains(all_events, "Saturday morning game")
 
+    @patch("pages.views.timezone.now", return_value=TEST_NOW)
+    def test_midnight_tbd_games_are_hidden_as_placeholders(self, _mocked_now):
+        arizona = ZoneInfo("America/Phoenix")
+        calendar = Calendar.objects.create(
+            name="Placeholder league",
+            cal_url="https://example.com/placeholders.ics",
+            timezone="America/Phoenix",
+            is_mine=True,
+        )
+        for title, starts_at, location in (
+            (
+                "Midnight TBD placeholder",
+                datetime(2026, 8, 13, 0, 0, tzinfo=arizona),
+                "TBD",
+            ),
+            (
+                "Real midnight game",
+                datetime(2026, 8, 14, 0, 0, tzinfo=arizona),
+                "Central Stadium",
+            ),
+            (
+                "Noon TBD game",
+                datetime(2026, 8, 14, 12, 0, tzinfo=arizona),
+                "TBD",
+            ),
+        ):
+            CalendarEvent.objects.create(
+                calendar=calendar,
+                external_uid=title,
+                title=title,
+                starts_at=starts_at,
+                ends_at=starts_at + timedelta(hours=1),
+                event_type=CalendarEvent.EventType.GAME,
+                location=location,
+                address=location,
+            )
+
+        games = self.client.get(reverse("home"), {"view": "games"})
+        all_events = self.client.get(reverse("home"), {"view": "all"})
+
+        self.assertNotContains(games, "Midnight TBD placeholder")
+        self.assertNotContains(all_events, "Midnight TBD placeholder")
+        self.assertContains(games, "Real midnight game")
+        self.assertContains(games, "Noon TBD game")
+
     @patch("pages.views.timezone.now")
     def test_home_event_type_views_and_week_filter(self, mocked_now):
         mocked_now.return_value = datetime(
