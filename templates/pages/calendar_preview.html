@@ -50,10 +50,9 @@
             {% with local_start=event.starts_at|in_timezone:result.timezone destination=event.address|default:event.location %}
               <tr class="{% if event.location %}event-location-colored{% endif %}"{% if event.location %} style="--location-hue: {{ event.location|location_hue }};"{% endif %}>
                 <td class="text-nowrap">{{ local_start|date:"M j, Y" }}</td>
-                <td class="text-nowrap">{% if event.is_all_day %}All day{% else %}{{ local_start|time:"g:i A" }}{% endif %}</td>
+                <td class="text-nowrap">{% if event.is_all_day %}All day{% else %}{{ local_start|time:"g:i A" }}{% endif %} {% include 'pages/_manual_time_marker.html' %}</td>
                 <td class="event-title-cell">
                   <div class="fw-semibold">{{ event.title }}</div>
-                  {% if event.source_starts_at %}<span class="badge text-bg-info">Manual time</span>{% endif %}
                   {% if event.team1 and event.team2 %}<div class="small text-body-secondary">{{ event.team1 }} vs {{ event.team2 }}</div>{% endif %}
                   <span class="badge event-type-{{ event.event_type }} mt-1">{{ event.event_type|title }}</span>
                   {% if event.game_gap_after %}

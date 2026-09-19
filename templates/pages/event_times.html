@@ -15,7 +15,6 @@
 
   {% if event.source_starts_at %}
     <div class="alert alert-info">
-      <strong>Manual time</strong>
       <div>Latest imported calendar times: {{ event.source_starts_at|in_timezone:event.calendar.timezone|date:"M j, Y, g:i A" }} – {{ event.source_ends_at|in_timezone:event.calendar.timezone|date:"M j, Y, g:i A" }}{% if event.source_is_all_day %} (all day){% endif %}.</div>
     </div>
   {% endif %}

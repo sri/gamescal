@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone as dt_timezone
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.test import TestCase, override_settings
@@ -80,7 +81,9 @@ class EventTimeTests(TestCase):
                 self.assertEqual(EventTimeOverride.objects.count(), 1)
                 home = self.client.get(reverse("home"), {"view": "all", "scope": "all"})
                 self.assertContains(home, self.edit_url, count=2)
-                self.assertContains(home, "Manual time", count=2)
+                self.assertNotContains(home, "Manual time")
+                self.assertContains(home, 'class="manual-time-marker"', count=2)
+                self.assertContains(home, 'title="Manually updated time">*</span>', count=2)
                 self.assertContains(home, "10:30 AM")
                 self.assertContains(
                     home,
@@ -115,6 +118,7 @@ class EventTimeTests(TestCase):
         self.assertContains(response, self.edit_url, count=2)
         self.assertContains(response, "All day", count=2)
         self.assertNotContains(response, ">Edit times</a>")
+        self.assertNotContains(response, 'class="manual-time-marker"')
 
     def test_repeated_edits_keep_original_times_and_reset_restores_them(self):
         original_start, original_end = self.event.starts_at, self.event.ends_at
@@ -197,7 +201,8 @@ class EventTimeTests(TestCase):
         self.assertFalse(self.calendar.events.exists())
         self.assertTrue(self.calendar.time_overrides.exists())
         preview = self.client.get(response.url)
-        self.assertContains(preview, "Manual time")
+        self.assertNotContains(preview, "Manual time")
+        self.assertContains(preview, 'class="manual-time-marker"', count=1)
         self.assertContains(preview, "10:30 AM")
         token = response.url.split("/")[-2]
         self.client.post(reverse("calendar_confirm", kwargs={"token": token}))
@@ -252,6 +257,65 @@ class EventTimeTests(TestCase):
         response = self.client.get(reverse("home"), {"view": "all", "scope": "all"})
         first = response.context["events"][0]
         self.assertEqual(first.game_gap_minutes, 15)
+
+    @patch("pages.views.timezone.now", return_value=NOW)
+    @patch("pages.views.get_route_estimate")
+    def test_gap_and_travel_buffer_recalculate_after_each_edit_and_reset(self, route, _now):
+        route.return_value = (
+            SimpleNamespace(is_available=True, duration_seconds=1200, distance_meters=5000),
+            False,
+        )
+        self.event.location = "First venue"
+        self.event.save()
+        following = CalendarEvent.objects.create(
+            calendar=self.calendar, external_uid="game-2", title="Next game",
+            starts_at=NOW + timedelta(days=1, hours=3),
+            ends_at=NOW + timedelta(days=1, hours=4),
+            event_type=CalendarEvent.EventType.GAME, location="Second venue",
+        )
+
+        def assert_gap(minutes, buffer_text, tight=False):
+            response = self.client.get(reverse("home"), {"view": "all", "scope": "all"})
+            first = response.context["events"][0]
+            self.assertEqual(first.pk, self.event.pk)
+            self.assertEqual(first.next_game.pk, following.pk)
+            self.assertEqual(first.game_gap_minutes, minutes)
+            self.assertEqual(first.game_buffer_after, buffer_text)
+            self.assertEqual(first.game_travel_tight, tight)
+            self.assertContains(response, buffer_text)
+
+        assert_gap(70, "50 min buffer")
+        self.client.post(self.edit_url, self.manual_data)
+        assert_gap(15, "5 min short", tight=True)
+        self.client.post(self.edit_url, {
+            **self.manual_data, "ends_at": "2026-08-13T11:15",
+        })
+        assert_gap(45, "25 min buffer")
+        self.client.post(reverse("event_edit_times", kwargs={"pk": following.pk}), {
+            "starts_at": "2026-08-13T12:30", "ends_at": "2026-08-13T13:30",
+        })
+        assert_gap(75, "55 min buffer")
+        self.client.post(reverse("event_reset_times", kwargs={"pk": self.event.pk}))
+        assert_gap(100, "1 hr 20 min buffer")
+
+    @patch("pages.views.timezone.now", return_value=NOW)
+    def test_manual_time_reorders_games_and_recalculates_gap(self, _now):
+        following = CalendarEvent.objects.create(
+            calendar=self.calendar, external_uid="game-2", title="Next game",
+            starts_at=NOW + timedelta(days=1, hours=3),
+            ends_at=NOW + timedelta(days=1, hours=4),
+            event_type=CalendarEvent.EventType.GAME,
+        )
+        self.client.post(reverse("event_edit_times", kwargs={"pk": following.pk}), {
+            "starts_at": "2026-08-13T09:00", "ends_at": "2026-08-13T09:30",
+        })
+        response = self.client.get(reverse("home"), {"view": "all", "scope": "all"})
+        first, second = response.context["events"]
+        self.assertEqual(first.pk, following.pk)
+        self.assertEqual(first.next_game.pk, self.event.pk)
+        self.assertEqual(first.game_gap_minutes, 30)
+        self.assertEqual(second.game_gap_after, "")
+        self.assertIsNone(second.next_game)
 
     @patch("pages.views.timezone.now", return_value=NOW)
     @patch("pages.views.fetch_and_parse_calendar")

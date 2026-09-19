@@ -1083,6 +1083,12 @@ a {
   font-size: 1.45rem;
 }
 
+.manual-time-marker,
+.mobile-event-time .manual-time-marker {
+  color: #3b82f6;
+  font-weight: 700;
+}
+
 .event-time-link {
   color: inherit;
   text-decoration: none;

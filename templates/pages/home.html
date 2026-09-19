@@ -164,7 +164,7 @@
                 </td>
                 <td class="text-nowrap">
                   <a class="event-time-link" href="{% url 'event_edit_times' event.pk %}" title="Edit times" aria-label="Edit times for {{ event.title }}">{% if event.is_all_day %}<span class="text-body-secondary">All day</span>{% else %}{{ local_start|time:"g:i A" }}{% endif %}</a>
-                  {% if event.source_starts_at %}<span class="badge text-bg-info mt-1">Manual time</span>{% endif %}
+                  {% include 'pages/_manual_time_marker.html' %}
                 </td>
                 <td class="event-title-cell">
                   <div class="fw-semibold">
@@ -216,7 +216,7 @@
                 </div>
                 <div class="mobile-event-time">
                   <span>{{ local_start|date:"D" }}</span>
-                  <strong><a class="event-time-link" href="{% url 'event_edit_times' event.pk %}" title="Edit times" aria-label="Edit times for {{ event.title }}">{% if event.is_all_day %}All day{% else %}{{ local_start|time:"g:i A" }}{% endif %}</a></strong>
+                  <strong><a class="event-time-link" href="{% url 'event_edit_times' event.pk %}" title="Edit times" aria-label="Edit times for {{ event.title }}">{% if event.is_all_day %}All day{% else %}{{ local_start|time:"g:i A" }}{% endif %}</a> {% include 'pages/_manual_time_marker.html' %}</strong>
                 </div>
               </div>
               {% if event.calendar.website_url or event.calendar.cal_url %}<a class="calendar-label mobile-calendar-label" href="{{ event.calendar.website_url|default:event.calendar.cal_url }}" target="_blank" rel="noopener noreferrer" title="Open {{ event.calendar.name }} calendar">{{ event.calendar.name }}</a>{% else %}<span class="calendar-label mobile-calendar-label">{{ event.calendar.name }}</span>{% endif %}
@@ -229,7 +229,6 @@
               <div class="d-flex align-items-center gap-2 flex-wrap">
                 <span class="badge event-type-{{ event.event_type }}">{{ event.get_event_type_display }}</span>
                 {% if event.calendar.is_mine %}<span class="badge text-bg-primary">Mine</span>{% endif %}
-                {% if event.source_starts_at %}<span class="badge text-bg-info">Manual time</span>{% endif %}
                 {% if event.status != 'confirmed' %}<span class="badge text-bg-warning">{{ event.get_status_display }}</span>{% endif %}
               </div>
               {% if event.schedule_conflict %}
