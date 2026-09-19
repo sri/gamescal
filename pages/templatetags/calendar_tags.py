@@ -36,6 +36,22 @@ def google_maps_directions(destination, origin=None):
 
 
 @register.filter
+def yelp_restaurants(location):
+    if not location:
+        return ""
+    parameters = {"find_desc": "Restaurants", "find_loc": str(location)}
+    return f"https://www.yelp.com/search?{urlencode(parameters)}"
+
+
+@register.filter
+def google_maps_restaurants(location):
+    if not location:
+        return ""
+    parameters = {"api": "1", "query": f"restaurants near {location}"}
+    return f"https://www.google.com/maps/search/?{urlencode(parameters)}"
+
+
+@register.filter
 def location_hue(value):
     """Return a stable color hue for a normalized location name or address."""
     if not value:

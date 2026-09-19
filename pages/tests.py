@@ -27,7 +27,9 @@ from .services import (
 from .templatetags.calendar_tags import (
     COOL_LOCATION_HUES,
     google_maps_directions,
+    google_maps_restaurants,
     location_hue,
+    yelp_restaurants,
 )
 
 
@@ -85,6 +87,39 @@ class PageTests(TestCase):
         self.assertNotContains(response, "All your events in one place.")
         self.assertContains(response, "Populate Demo")
         self.assertContains(response, "API Logs")
+
+    @patch("pages.views.timezone.now", return_value=TEST_NOW)
+    def test_event_addresses_link_to_restaurant_searches(self, _mocked_now):
+        calendar = Calendar.objects.create(
+            name="League",
+            cal_url="https://example.com/restaurants.ics",
+            is_mine=True,
+        )
+        CalendarEvent.objects.create(
+            calendar=calendar,
+            external_uid="restaurant-links",
+            title="Falcons game",
+            starts_at=TEST_NOW + timedelta(days=1),
+            ends_at=TEST_NOW + timedelta(days=1, hours=1),
+            event_type=CalendarEvent.EventType.GAME,
+            location="Central Stadium",
+            address="123 Main St, Phoenix, AZ",
+        )
+
+        response = self.client.get(reverse("home"))
+
+        self.assertContains(
+            response,
+            "https://www.yelp.com/search?find_desc=Restaurants&amp;find_loc=123+Main+St%2C+Phoenix%2C+AZ",
+            count=2,
+        )
+        self.assertContains(
+            response,
+            "https://www.google.com/maps/search/?api=1&amp;query=restaurants+near+123+Main+St%2C+Phoenix%2C+AZ",
+            count=2,
+        )
+        self.assertContains(response, ">Yelp</a>", count=2)
+        self.assertContains(response, ">GMaps</a>", count=2)
 
     @override_settings(ENABLE_API_LOG_VIEW=False, ENABLE_DEMO_TOOLS=False)
     def test_debug_query_enables_developer_tools(self):
@@ -1581,6 +1616,20 @@ class CalendarParsingTests(TestCase):
             google_maps_directions("North Field", "Central Stadium"),
             "https://www.google.com/maps/dir/?api=1&origin=Central+Stadium&destination=North+Field",
         )
+
+    def test_restaurant_search_urls(self):
+        address = "123 Main St, Phoenix, AZ"
+
+        self.assertEqual(
+            yelp_restaurants(address),
+            "https://www.yelp.com/search?find_desc=Restaurants&find_loc=123+Main+St%2C+Phoenix%2C+AZ",
+        )
+        self.assertEqual(
+            google_maps_restaurants(address),
+            "https://www.google.com/maps/search/?api=1&query=restaurants+near+123+Main+St%2C+Phoenix%2C+AZ",
+        )
+        self.assertEqual(yelp_restaurants(""), "")
+        self.assertEqual(google_maps_restaurants(None), "")
 
     def test_parse_calendar_extracts_events_and_expands_recurrence(self):
         content = b"""BEGIN:VCALENDAR\r

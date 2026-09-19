@@ -1,0 +1,5 @@
+{% load calendar_tags %}
+<span class="restaurant-links" aria-label="Restaurant searches near {{ event.location }}">
+  <a href="{{ destination|yelp_restaurants }}" target="_blank" rel="noopener noreferrer" title="Search Yelp for restaurants near {{ event.location }}">Yelp</a><span aria-hidden="true">,</span>
+  <a href="{{ destination|google_maps_restaurants }}" target="_blank" rel="noopener noreferrer" title="Search Google Maps for restaurants near {{ event.location }}">GMaps</a>
+</span>

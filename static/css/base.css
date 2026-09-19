@@ -950,6 +950,31 @@ a {
   text-decoration-color: currentColor;
 }
 
+.event-location-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.65rem;
+}
+
+.restaurant-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--bs-secondary-color);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.restaurant-links a {
+  color: var(--bs-link-color);
+  text-underline-offset: 0.15em;
+}
+
+.restaurant-links a:hover {
+  color: var(--bs-link-hover-color);
+}
+
 .location-chip {
   display: inline-flex;
   align-items: center;
@@ -1137,6 +1162,19 @@ a {
 
 .mobile-event-title a {
   color: inherit;
+}
+
+.mobile-location-group {
+  margin: 0 0.9rem 0.9rem;
+}
+
+.mobile-location-group .mobile-location-link {
+  margin: 0;
+}
+
+.mobile-location-group .restaurant-links {
+  margin-top: 0.45rem;
+  padding-inline: 0.25rem;
 }
 
 .mobile-location-link {
