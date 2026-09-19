@@ -62,7 +62,9 @@ class EventTimeTests(TestCase):
 
         home = self.client.get(reverse("home"), {"view": "all", "scope": "all"})
         self.assertContains(home, add_url, count=2)
-        self.assertContains(home, "+ Add playoff game", count=2)
+        self.assertContains(home, 'class="followup-game-button"', count=2)
+        self.assertContains(home, 'title="Add playoff game"', count=2)
+        self.assertNotContains(home, "+ Add playoff game")
         self.assertEqual(self.client.get(add_url).status_code, 405)
 
         response = self.client.post(add_url)

@@ -1008,6 +1008,42 @@ a {
   background: hsl(var(--location-hue) 68% 45%);
 }
 
+.calendar-name-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.followup-game-form {
+  display: inline-flex;
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.followup-game-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.45rem;
+  height: 1.45rem;
+  padding: 0 0 0.08rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 50%;
+  color: var(--bs-secondary-color);
+  background: transparent;
+  font-size: 1rem;
+  line-height: 1;
+  opacity: 0.65;
+}
+
+.followup-game-button:hover,
+.followup-game-button:focus-visible {
+  border-color: var(--bs-secondary-color);
+  color: var(--bs-body-color);
+  opacity: 1;
+}
+
 .calendar-label {
   display: inline-block;
   padding: 0.25rem 0.5rem;
@@ -1147,8 +1183,13 @@ a {
   white-space: nowrap;
 }
 
+.mobile-calendar-actions {
+  justify-content: flex-end;
+  max-width: 52%;
+}
+
 .mobile-calendar-label {
-  max-width: 45%;
+  max-width: calc(100% - 1.8rem);
   overflow: hidden;
   text-overflow: ellipsis;
 }

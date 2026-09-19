@@ -175,7 +175,6 @@
                   {% if event.calendar.is_mine %}<span class="badge text-bg-primary mt-1">Mine</span>{% endif %}
                   {% if event.is_manual %}<span class="badge text-bg-secondary mt-1">Manual</span>{% endif %}
                   {% if event.status != 'confirmed' %}<span class="badge text-bg-warning mt-1">{{ event.get_status_display }}</span>{% endif %}
-                  <div>{% include 'pages/_followup_game_button.html' %}</div>
                   {% if event.schedule_conflict %}
                     <div class="schedule-conflict mt-2" title="{{ event.schedule_conflict_details }}">
                       <span class="badge text-bg-danger">⚠ Schedule conflict</span>
@@ -198,7 +197,12 @@
                     <span class="text-body-secondary">—</span>
                   {% endif %}
                 </td>
-                <td>{% if event.calendar.website_url or event.calendar.cal_url %}<a class="calendar-label" href="{{ event.calendar.website_url|default:event.calendar.cal_url }}" target="_blank" rel="noopener noreferrer" title="Open {{ event.calendar.name }} calendar">{{ event.calendar.name }}</a>{% else %}<span class="calendar-label">{{ event.calendar.name }}</span>{% endif %}</td>
+                <td>
+                  <div class="calendar-name-actions">
+                    {% if event.calendar.website_url or event.calendar.cal_url %}<a class="calendar-label" href="{{ event.calendar.website_url|default:event.calendar.cal_url }}" target="_blank" rel="noopener noreferrer" title="Open {{ event.calendar.name }} calendar">{{ event.calendar.name }}</a>{% else %}<span class="calendar-label">{{ event.calendar.name }}</span>{% endif %}
+                    {% include 'pages/_followup_game_button.html' %}
+                  </div>
+                </td>
               </tr>
             {% endwith %}
           {% endfor %}
@@ -221,7 +225,10 @@
                   <strong><a class="event-time-link" href="{% url 'event_edit_times' event.pk %}" title="Edit times" aria-label="Edit times for {{ event.title }}">{% if event.is_all_day %}All day{% else %}{{ local_start|time:"g:i A" }}{% endif %}</a> {% include 'pages/_manual_time_marker.html' %}</strong>
                 </div>
               </div>
-              {% if event.calendar.website_url or event.calendar.cal_url %}<a class="calendar-label mobile-calendar-label" href="{{ event.calendar.website_url|default:event.calendar.cal_url }}" target="_blank" rel="noopener noreferrer" title="Open {{ event.calendar.name }} calendar">{{ event.calendar.name }}</a>{% else %}<span class="calendar-label mobile-calendar-label">{{ event.calendar.name }}</span>{% endif %}
+              <div class="calendar-name-actions mobile-calendar-actions">
+                {% if event.calendar.website_url or event.calendar.cal_url %}<a class="calendar-label mobile-calendar-label" href="{{ event.calendar.website_url|default:event.calendar.cal_url }}" target="_blank" rel="noopener noreferrer" title="Open {{ event.calendar.name }} calendar">{{ event.calendar.name }}</a>{% else %}<span class="calendar-label mobile-calendar-label">{{ event.calendar.name }}</span>{% endif %}
+                {% include 'pages/_followup_game_button.html' %}
+              </div>
             </header>
 
             <div class="mobile-event-body">
@@ -234,7 +241,6 @@
                 {% if event.is_manual %}<span class="badge text-bg-secondary">Manual</span>{% endif %}
                 {% if event.status != 'confirmed' %}<span class="badge text-bg-warning">{{ event.get_status_display }}</span>{% endif %}
               </div>
-              {% include 'pages/_followup_game_button.html' %}
               {% if event.schedule_conflict %}
                 <div class="schedule-conflict mt-2" title="{{ event.schedule_conflict_details }}">
                   <span class="badge text-bg-danger">⚠ Schedule conflict</span>
