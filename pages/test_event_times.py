@@ -51,9 +51,14 @@ class EventTimeTests(TestCase):
         )
 
     def test_edit_form_uses_calendar_timezone_and_does_not_change_on_get(self):
+        self.event.starts_at = self.event.starts_at.replace(second=37, microsecond=123456)
+        self.event.save()
         response = self.client.get(self.edit_url)
         self.assertContains(response, 'type="datetime-local"')
-        self.assertContains(response, 'value="2026-08-13T10:00:00"')
+        self.assertContains(response, 'value="2026-08-13T10:00"')
+        self.assertContains(response, 'step="60"', count=2)
+        self.event.refresh_from_db()
+        self.assertEqual(self.event.starts_at.second, 37)
         self.assertContains(response, "America/Phoenix")
         self.assertFalse(EventTimeOverride.objects.exists())
         self.assertNotContains(response, "Use calendar times")
@@ -77,6 +82,39 @@ class EventTimeTests(TestCase):
                 self.assertContains(home, self.edit_url, count=2)
                 self.assertContains(home, "Manual time", count=2)
                 self.assertContains(home, "10:30 AM")
+                self.assertContains(
+                    home,
+                    f'<a class="event-time-link" href="{self.edit_url}" '
+                    'title="Edit times" aria-label="Edit times for Team game">10:30 AM</a>',
+                    count=2,
+                    html=True,
+                )
+                self.assertNotContains(home, ">Edit times</a>")
+
+    def test_saved_manual_times_always_have_zero_seconds(self):
+        response = self.client.post(self.edit_url, {
+            "starts_at": "2026-08-13T10:30:47.123456",
+            "ends_at": "2026-08-13T11:45:59.654321",
+        })
+        self.assertRedirects(response, self.edit_url)
+        self.event.refresh_from_db()
+        override = EventTimeOverride.objects.get()
+        for obj in (self.event, override):
+            self.assertEqual(obj.starts_at.minute, 30)
+            self.assertEqual(obj.ends_at.minute, 45)
+            for value in (obj.starts_at, obj.ends_at):
+                self.assertEqual(value.second, 0)
+                self.assertEqual(value.microsecond, 0)
+
+    @patch("pages.views.timezone.now", return_value=NOW)
+    def test_all_day_label_is_an_edit_link_on_both_layouts(self, _now):
+        self.event.is_all_day = True
+        self.event.save()
+        response = self.client.get(reverse("home"), {"view": "all", "scope": "all"})
+        self.assertContains(response, 'class="event-time-link"', count=2)
+        self.assertContains(response, self.edit_url, count=2)
+        self.assertContains(response, "All day", count=2)
+        self.assertNotContains(response, ">Edit times</a>")
 
     def test_repeated_edits_keep_original_times_and_reset_restores_them(self):
         original_start, original_end = self.event.starts_at, self.event.ends_at
@@ -103,6 +141,7 @@ class EventTimeTests(TestCase):
             {"starts_at": "not a date", "ends_at": self.manual_data["ends_at"]},
             {"starts_at": "2026-08-13T12:00", "ends_at": "2026-08-13T11:00"},
             {"starts_at": "2026-08-13T12:00", "ends_at": "2026-08-13T12:00"},
+            {"starts_at": "2026-08-13T12:00:01", "ends_at": "2026-08-13T12:00:59"},
             {**self.manual_data, "is_all_day": "on"},
         ):
             with self.subTest(data=data):

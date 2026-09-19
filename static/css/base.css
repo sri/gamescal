@@ -1083,6 +1083,18 @@ a {
   font-size: 1.45rem;
 }
 
+.event-time-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.event-time-link:hover,
+.event-time-link:focus-visible {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
 .mobile-event-time {
   display: flex;
   flex-direction: column;

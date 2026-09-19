@@ -122,15 +122,15 @@ class EventTimeForm(forms.Form):
     starts_at = forms.DateTimeField(
         label="Starts at",
         widget=forms.DateTimeInput(
-            format="%Y-%m-%dT%H:%M:%S",
-            attrs={"type": "datetime-local", "class": "form-control", "step": "1"},
+            format="%Y-%m-%dT%H:%M",
+            attrs={"type": "datetime-local", "class": "form-control", "step": "60"},
         ),
     )
     ends_at = forms.DateTimeField(
         label="Ends at",
         widget=forms.DateTimeInput(
-            format="%Y-%m-%dT%H:%M:%S",
-            attrs={"type": "datetime-local", "class": "form-control", "step": "1"},
+            format="%Y-%m-%dT%H:%M",
+            attrs={"type": "datetime-local", "class": "form-control", "step": "60"},
         ),
     )
     is_all_day = forms.BooleanField(
@@ -144,6 +144,9 @@ class EventTimeForm(forms.Form):
 
     def clean(self):
         data = super().clean()
+        for field in ("starts_at", "ends_at"):
+            if data.get(field):
+                data[field] = data[field].replace(second=0, microsecond=0)
         start, end = data.get("starts_at"), data.get("ends_at")
         if start and end:
             if end <= start:
