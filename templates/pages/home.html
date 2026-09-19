@@ -282,7 +282,7 @@
         <div class="food-search-options" aria-label="Food searches near {{ food_location.address }}">
           <span class="food-search-option"><span>🍔 Fast Food:</span> <a href="{{ food_location.address|yelp_food_search:'Fast Food' }}" target="_blank" rel="noopener noreferrer">Yelp</a> · <a href="{{ food_location.address|google_maps_food_search:'Fast Food' }}" target="_blank" rel="noopener noreferrer">GMaps</a></span>
           <span class="food-search-divider" aria-hidden="true">|</span>
-          <span class="food-search-option"><span>🌯 Chipotle:</span> <a href="{{ food_location.address|yelp_food_search:'Chipotle' }}" target="_blank" rel="noopener noreferrer">Yelp</a> · <a href="{{ food_location.address|google_maps_food_search:'Chipotle' }}" target="_blank" rel="noopener noreferrer">GMaps</a></span>
+          <span class="food-search-option"><span>🌯 Chipotle:</span> <a href="{{ food_location.address|yelp_food_search:'Chipotle' }}" target="_blank" rel="noopener noreferrer">Yelp</a> · <a href="{{ food_location.address|google_maps_chipotle_directions }}" target="_blank" rel="noopener noreferrer" title="Directions from the event location to a nearby Chipotle">GMaps</a></span>
           <span class="food-search-divider" aria-hidden="true">|</span>
           <span class="food-search-option"><span>🍕 Pizza:</span> <a href="{{ food_location.address|yelp_food_search:'Pizza' }}" target="_blank" rel="noopener noreferrer">Yelp</a> · <a href="{{ food_location.address|google_maps_food_search:'Pizza' }}" target="_blank" rel="noopener noreferrer">GMaps</a></span>
           <span class="food-search-divider" aria-hidden="true">|</span>

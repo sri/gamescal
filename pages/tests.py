@@ -26,6 +26,7 @@ from .services import (
 )
 from .templatetags.calendar_tags import (
     COOL_LOCATION_HUES,
+    google_maps_chipotle_directions,
     google_maps_directions,
     google_maps_food_search,
     location_hue,
@@ -129,7 +130,7 @@ class PageTests(TestCase):
         )
         self.assertContains(
             games,
-            "https://www.google.com/maps/search/?api=1&amp;query=Chipotle+near+123+Main+St%2C+Phoenix%2C+AZ",
+            "https://www.google.com/maps/dir/?api=1&amp;origin=123+Main+St%2C+Phoenix%2C+AZ&amp;destination=Chipotle+Mexican+Grill+near+123+Main+St%2C+Phoenix%2C+AZ",
         )
         self.assertContains(games, ">Yelp</a>", count=4)
         self.assertContains(games, ">GMaps</a>", count=4)
@@ -1680,8 +1681,13 @@ class CalendarParsingTests(TestCase):
             google_maps_food_search(address, "Pizza"),
             "https://www.google.com/maps/search/?api=1&query=Pizza+near+123+Main+St%2C+Phoenix%2C+AZ",
         )
+        self.assertEqual(
+            google_maps_chipotle_directions(address),
+            "https://www.google.com/maps/dir/?api=1&origin=123+Main+St%2C+Phoenix%2C+AZ&destination=Chipotle+Mexican+Grill+near+123+Main+St%2C+Phoenix%2C+AZ",
+        )
         self.assertEqual(yelp_food_search("", "Restaurants"), "")
         self.assertEqual(google_maps_food_search(None, "Chipotle"), "")
+        self.assertEqual(google_maps_chipotle_directions(""), "")
 
     def test_parse_calendar_extracts_events_and_expands_recurrence(self):
         content = b"""BEGIN:VCALENDAR\r

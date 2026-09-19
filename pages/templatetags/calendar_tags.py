@@ -52,6 +52,14 @@ def google_maps_food_search(location, query):
 
 
 @register.filter
+def google_maps_chipotle_directions(location):
+    if not location:
+        return ""
+    destination = f"Chipotle Mexican Grill near {location}"
+    return google_maps_directions(destination, location)
+
+
+@register.filter
 def location_hue(value):
     """Return a stable color hue for a normalized location name or address."""
     if not value:
