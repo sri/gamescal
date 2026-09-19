@@ -92,6 +92,33 @@ def _is_placeholder_game(event):
     return local_start.time() == time.min
 
 
+def _game_day(event):
+    local_timezone = ZoneInfo(settings.TIME_ZONE)
+    return timezone.localtime(event.starts_at, local_timezone).date()
+
+
+def _hide_finished_game_days(events, now, *, preserve_placeholders=False):
+    """Hide a day's games once its final scheduled game has run for 50 minutes."""
+    day_deadlines = {}
+    for event in events:
+        if event.event_type not in GAME_EVENT_TYPES or _is_placeholder_game(event):
+            continue
+        deadline = event.starts_at + GAME_DURATION
+        day = _game_day(event)
+        day_deadlines[day] = max(day_deadlines.get(day, deadline), deadline)
+
+    finished_days = {
+        day for day, deadline in day_deadlines.items() if now >= deadline
+    }
+    return [
+        event
+        for event in events
+        if event.event_type not in GAME_EVENT_TYPES
+        or _game_day(event) not in finished_days
+        or (preserve_placeholders and _is_placeholder_game(event))
+    ]
+
+
 def _food_locations(events):
     """Return each displayed event destination once, preserving event order."""
     locations = []
@@ -387,10 +414,17 @@ class HomePageView(TemplateView):
 
         if requested_view in {"games", "practices", "all"}:
             event_view = requested_view
-        elif default_week_events.filter(event_type__in=GAME_EVENT_TYPES).exists():
-            event_view = "games"
         else:
-            event_view = "practices"
+            default_games = list(
+                default_week_events.filter(event_type__in=GAME_EVENT_TYPES).order_by(
+                    "starts_at", "title"
+                )[:2000]
+            )
+            default_games = [
+                event for event in default_games if not _is_placeholder_game(event)
+            ]
+            default_games = _hide_finished_game_days(default_games, now)
+            event_view = "games" if default_games else "practices"
 
         if event_view == "games":
             events = game_week_events
@@ -416,6 +450,11 @@ class HomePageView(TemplateView):
         events = list(events.order_by("starts_at", "title")[:2000])
         if event_view == "games":
             events = [event for event in events if not _is_placeholder_game(event)]
+        events = _hide_finished_game_days(
+            events,
+            now,
+            preserve_placeholders=event_view == "all",
+        )
         events = _annotate_schedule_conflicts(events[:500])
         events = _annotate_game_gaps(events)
         _annotate_game_directions(events)

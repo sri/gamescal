@@ -422,7 +422,9 @@ class PageTests(TestCase):
         )
 
     @patch("pages.views.timezone.now")
-    def test_games_remain_visible_for_the_entire_local_day(self, mocked_now):
+    def test_game_day_disappears_after_the_last_game_runs_for_50_minutes(
+        self, mocked_now
+    ):
         arizona = ZoneInfo("America/Phoenix")
         mocked_now.return_value = datetime(2026, 8, 15, 13, 0, tzinfo=arizona)
         calendar = Calendar.objects.create(
@@ -432,23 +434,43 @@ class PageTests(TestCase):
         )
         for title, starts_at in (
             ("Saturday morning game", datetime(2026, 8, 15, 8, 0, tzinfo=arizona)),
-            ("Friday game", datetime(2026, 8, 14, 18, 0, tzinfo=arizona)),
+            ("Saturday final game", datetime(2026, 8, 15, 12, 20, tzinfo=arizona)),
+            ("Sunday game", datetime(2026, 8, 16, 9, 0, tzinfo=arizona)),
         ):
             CalendarEvent.objects.create(
                 calendar=calendar,
                 external_uid=title,
                 title=title,
                 starts_at=starts_at,
-                ends_at=starts_at + timedelta(hours=1),
+                # Imported end times do not control the 50-minute display cutoff.
+                ends_at=starts_at + timedelta(hours=2),
                 event_type=CalendarEvent.EventType.GAME,
             )
 
-        games = self.client.get(reverse("home"), {"view": "games"})
-        all_events = self.client.get(reverse("home"), {"view": "all"})
+        before_final_ends = self.client.get(reverse("home"), {"view": "games"})
 
-        self.assertContains(games, "Saturday morning game")
-        self.assertNotContains(games, "Friday game")
-        self.assertContains(all_events, "Saturday morning game")
+        self.assertContains(before_final_ends, "Saturday morning game")
+        self.assertContains(before_final_ends, "Saturday final game")
+        self.assertContains(before_final_ends, "Sunday game")
+
+        mocked_now.return_value = datetime(2026, 8, 15, 13, 10, tzinfo=arizona)
+        after_final_ends = self.client.get(reverse("home"), {"view": "games"})
+        all_events = self.client.get(reverse("home"), {"view": "all"})
+        default_view = self.client.get(reverse("home"))
+
+        self.assertNotContains(after_final_ends, "Saturday morning game")
+        self.assertNotContains(after_final_ends, "Saturday final game")
+        self.assertContains(after_final_ends, "Sunday game")
+        self.assertNotContains(all_events, "Saturday morning game")
+        self.assertNotContains(all_events, "Saturday final game")
+        self.assertContains(all_events, "Sunday game")
+        self.assertEqual(default_view.context["event_view"], "games")
+
+        mocked_now.return_value = datetime(2026, 8, 16, 9, 50, tzinfo=arizona)
+        after_sunday_game = self.client.get(reverse("home"))
+
+        self.assertNotContains(after_sunday_game, "Sunday game")
+        self.assertEqual(after_sunday_game.context["event_view"], "practices")
 
     @patch("pages.views.timezone.now", return_value=TEST_NOW)
     def test_midnight_tbd_games_are_hidden_as_placeholders(self, _mocked_now):
