@@ -1184,12 +1184,16 @@ a {
 }
 
 .mobile-calendar-actions {
+  flex: 0 1 42%;
+  min-width: 0;
+  max-width: 42%;
   justify-content: flex-end;
-  max-width: 52%;
 }
 
 .mobile-calendar-label {
-  max-width: calc(100% - 1.8rem);
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
 }
