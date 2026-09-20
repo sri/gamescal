@@ -226,7 +226,7 @@
                 </div>
               </div>
               <div class="calendar-name-actions mobile-calendar-actions">
-                {% if event.calendar.website_url or event.calendar.cal_url %}<a class="calendar-label mobile-calendar-label" href="{{ event.calendar.website_url|default:event.calendar.cal_url }}" target="_blank" rel="noopener noreferrer" title="Open {{ event.calendar.name }} calendar">{{ event.calendar.name }}</a>{% else %}<span class="calendar-label mobile-calendar-label">{{ event.calendar.name }}</span>{% endif %}
+                {% if event.calendar.website_url or event.calendar.cal_url %}<a class="calendar-label mobile-calendar-label" href="{{ event.calendar.website_url|default:event.calendar.cal_url }}" target="_blank" rel="noopener noreferrer" title="Open {{ event.calendar.name }} calendar">{{ event.calendar.name|truncatechars:10 }}</a>{% else %}<span class="calendar-label mobile-calendar-label" title="{{ event.calendar.name }}">{{ event.calendar.name|truncatechars:10 }}</span>{% endif %}
                 {% include 'pages/_followup_game_button.html' %}
               </div>
             </header>

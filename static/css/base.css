@@ -1111,9 +1111,11 @@ a {
 
 .mobile-event-header {
   display: flex;
+  min-width: 0;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+  overflow: hidden;
   padding: 0.8rem 0.9rem;
   border-bottom: 1px solid rgb(0 0 0 / 7%);
 }
@@ -1184,10 +1186,13 @@ a {
 }
 
 .mobile-calendar-actions {
-  flex: 0 1 42%;
+  flex: 0 1 30%;
   min-width: 0;
-  max-width: 42%;
+  width: 30%;
+  max-width: 30%;
   justify-content: flex-end;
+  gap: 0.2rem;
+  overflow: hidden;
 }
 
 .mobile-calendar-label {
