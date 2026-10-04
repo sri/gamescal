@@ -1,8 +1,6 @@
-{% if not event.is_manual %}
-  {% if event.event_type == 'game' or event.event_type == 'tournament' %}
-    <form method="post" action="{% url 'event_add_followup' event.pk %}" class="followup-game-form">
-      {% csrf_token %}
-      <button class="followup-game-button" type="submit" title="Add playoff game" aria-label="Add playoff game after {{ event.title }}"><span aria-hidden="true">+</span></button>
-    </form>
-  {% endif %}
+{% if event.event_type == 'game' or event.event_type == 'tournament' %}
+  <form method="post" action="{% url 'event_add_followup' event.pk %}" class="followup-game-form">
+    {% csrf_token %}
+    <button class="followup-game-button" type="submit" title="Clone game" aria-label="Clone {{ event.title }}"><span aria-hidden="true">+</span></button>
+  </form>
 {% endif %}

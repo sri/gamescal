@@ -52,7 +52,7 @@ class EventTimeTests(TestCase):
         )
 
     @patch("pages.views.timezone.now", return_value=NOW)
-    def test_game_has_button_that_adds_an_editable_tentative_followup(self, _now):
+    def test_game_can_be_cloned_and_all_clone_details_can_be_edited(self, _now):
         self.event.location = "Playoff Arena"
         self.event.address = "123 Bracket Way"
         self.event.team1 = "My Team"
@@ -63,8 +63,8 @@ class EventTimeTests(TestCase):
         home = self.client.get(reverse("home"), {"view": "all", "scope": "all"})
         self.assertContains(home, add_url, count=2)
         self.assertContains(home, 'class="followup-game-button"', count=2)
-        self.assertContains(home, 'title="Add playoff game"', count=2)
-        self.assertNotContains(home, "+ Add playoff game")
+        self.assertContains(home, 'title="Clone game"', count=2)
+        self.assertNotContains(home, "+ Clone game")
         self.assertEqual(self.client.get(add_url).status_code, 405)
 
         response = self.client.post(add_url)
@@ -73,31 +73,52 @@ class EventTimeTests(TestCase):
         self.assertRedirects(
             response, reverse("event_edit_times", kwargs={"pk": followup.pk})
         )
-        self.assertEqual(followup.title, "Next Playoff game, if advanced")
+        self.assertEqual(followup.title, "Team game")
         self.assertEqual(followup.starts_at, self.event.starts_at)
-        self.assertEqual(followup.ends_at, self.event.starts_at + timedelta(minutes=50))
+        self.assertEqual(followup.ends_at, self.event.ends_at)
         self.assertEqual(followup.location, "Playoff Arena")
         self.assertEqual(followup.address, "123 Bracket Way")
         self.assertEqual(followup.event_type, CalendarEvent.EventType.GAME)
-        self.assertEqual(followup.status, CalendarEvent.Status.TENTATIVE)
+        self.assertEqual(followup.status, CalendarEvent.Status.CONFIRMED)
         self.assertTrue(followup.is_manual)
-        self.assertEqual(followup.team1, "")
-        self.assertEqual(followup.team2, "")
+        self.assertEqual(followup.team1, "My Team")
+        self.assertEqual(followup.team2, "First Opponent")
 
         edit_page = self.client.get(response.url)
-        self.assertContains(edit_page, "manually added tentative game")
-        self.assertContains(edit_page, "Delete playoff game")
-        self.client.post(response.url, self.manual_data)
+        self.assertContains(edit_page, "This cloned game")
+        self.assertContains(edit_page, "Delete cloned game")
+        self.assertContains(edit_page, 'name="title"')
+        self.assertContains(edit_page, 'name="location"')
+        self.assertContains(edit_page, 'name="is_tentative"')
+        self.client.post(response.url, {
+            **self.manual_data,
+            "title": "Playoff semifinal",
+            "location": "Championship Court",
+            "address": "456 Finals Ave",
+            "is_tentative": "on",
+        })
         followup.refresh_from_db()
+        self.assertEqual(followup.title, "Playoff semifinal")
+        self.assertEqual(followup.location, "Championship Court")
+        self.assertEqual(followup.address, "456 Finals Ave")
+        self.assertEqual(followup.status, CalendarEvent.Status.TENTATIVE)
         self.assertEqual(followup.starts_at.hour, 17)
         self.assertEqual(followup.starts_at.minute, 30)
         self.assertFalse(EventTimeOverride.objects.exists())
         self.assertIsNone(followup.source_starts_at)
 
         home = self.client.get(reverse("home"), {"view": "all", "scope": "all"})
-        self.assertContains(home, "Manual", count=2)
-        self.assertContains(home, "Tentative", count=2)
-        self.assertContains(home, add_url, count=2)
+        self.assertNotContains(home, ">Manual</span>")
+        self.assertNotContains(home, ">Tentative</span>")
+        clone_url = reverse("event_add_followup", kwargs={"pk": followup.pk})
+        self.assertContains(home, clone_url, count=2)
+        self.client.post(clone_url)
+        second_clone = CalendarEvent.objects.exclude(
+            pk__in=(self.event.pk, followup.pk)
+        ).get()
+        self.assertEqual(second_clone.title, "Playoff semifinal")
+        self.assertEqual(second_clone.location, "Championship Court")
+        self.assertEqual(second_clone.status, CalendarEvent.Status.TENTATIVE)
 
     @patch("pages.views.fetch_and_parse_calendar")
     def test_manual_followup_survives_refresh_and_can_be_deleted(self, fetch):
@@ -171,10 +192,11 @@ class EventTimeTests(TestCase):
                 self.assertContains(home, 'class="manual-time-marker"', count=2)
                 self.assertContains(home, 'title="Manually updated time">*</span>', count=2)
                 self.assertContains(home, "10:30 AM")
+                edit_label = "Edit game" if event_type == CalendarEvent.EventType.GAME else "Edit times"
                 self.assertContains(
                     home,
                     f'<a class="event-time-link" href="{self.edit_url}" '
-                    'title="Edit times" aria-label="Edit times for Team game">10:30 AM</a>',
+                    f'title="{edit_label}" aria-label="{edit_label} for Team game">10:30 AM</a>',
                     count=2,
                     html=True,
                 )
@@ -298,6 +320,25 @@ class EventTimeTests(TestCase):
         self.client.post(reverse("event_reset_times", kwargs={"pk": event.pk}))
         event.refresh_from_db()
         self.assertEqual(event.starts_at, result.events[0].starts_at)
+
+    @patch("pages.views.fetch_and_parse_calendar")
+    def test_refresh_preserves_edited_game_title_location_and_status(self, fetch):
+        self.client.post(self.edit_url, {
+            **self.manual_data,
+            "title": "Updated playoff game",
+            "location": "New Arena",
+            "address": "100 New Arena Way",
+            "is_tentative": "on",
+        })
+        fetch.return_value = self.feed_result()
+
+        self.client.post(reverse("calendars_refresh_all"))
+
+        event = self.calendar.events.get()
+        self.assertEqual(event.title, "Updated playoff game")
+        self.assertEqual(event.location, "New Arena")
+        self.assertEqual(event.address, "100 New Arena Way")
+        self.assertEqual(event.status, CalendarEvent.Status.TENTATIVE)
 
     @patch("pages.views.fetch_and_parse_calendar")
     def test_refresh_all_preserves_manual_times_and_updates_source_times(self, fetch):

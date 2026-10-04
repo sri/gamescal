@@ -118,7 +118,12 @@ class CalendarEditForm(forms.ModelForm):
         }
 
 
-class EventTimeForm(forms.Form):
+class EventEditForm(forms.Form):
+    title = forms.CharField(
+        max_length=500,
+        label="Title",
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
     starts_at = forms.DateTimeField(
         label="Starts at",
         widget=forms.DateTimeInput(
@@ -141,6 +146,63 @@ class EventTimeForm(forms.Form):
         ),
         widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
     )
+    location = forms.CharField(
+        max_length=500,
+        required=False,
+        label="Location",
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+    address = forms.CharField(
+        max_length=500,
+        required=False,
+        label="Map address",
+        help_text="Optional. Used for directions when it differs from the location name.",
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+    is_tentative = forms.BooleanField(
+        required=False,
+        label="Tentative",
+        help_text="Use this when the game depends on the result of an earlier game.",
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )
+
+    def __init__(self, *args, event=None, **kwargs):
+        if event is None:
+            raise TypeError("EventEditForm requires an event.")
+        data = args[0] if args else kwargs.get("data")
+        if data is not None and "title" not in data:
+            data = data.copy()
+            data["title"] = event.title
+            data["location"] = event.location
+            data["address"] = event.address
+            if event.status == event.Status.TENTATIVE:
+                data["is_tentative"] = "on"
+            if args:
+                args = (data, *args[1:])
+            else:
+                kwargs["data"] = data
+        initial = kwargs.setdefault("initial", {})
+        initial.update(
+            {
+                "title": event.title,
+                "starts_at": event.starts_at,
+                "ends_at": event.ends_at,
+                "is_all_day": event.is_all_day,
+                "location": event.location,
+                "address": event.address,
+                "is_tentative": event.status == event.Status.TENTATIVE,
+            }
+        )
+        super().__init__(*args, **kwargs)
+        if event.event_type not in (event.EventType.GAME, event.EventType.TOURNAMENT):
+            for field in ("title", "location", "address", "is_tentative"):
+                self.fields.pop(field)
+
+    def clean_title(self):
+        title = self.cleaned_data["title"].strip()
+        if not title:
+            raise forms.ValidationError("Enter a title.")
+        return title
 
     def clean(self):
         data = super().clean()

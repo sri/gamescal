@@ -131,6 +131,32 @@ class EventTimeOverride(models.Model):
         ]
 
 
+class EventDetailsOverride(models.Model):
+    """Editable game details keyed by feed identity so refreshes preserve them."""
+
+    calendar = models.ForeignKey(
+        Calendar, on_delete=models.CASCADE, related_name="details_overrides"
+    )
+    external_uid = models.CharField(max_length=255)
+    recurrence_id = models.CharField(max_length=255, blank=True)
+    title = models.CharField(max_length=500)
+    location = models.CharField(max_length=500, blank=True)
+    address = models.CharField(max_length=500, blank=True)
+    status = models.CharField(
+        max_length=20,
+        choices=CalendarEvent.Status.choices,
+        default=CalendarEvent.Status.CONFIRMED,
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["calendar", "external_uid", "recurrence_id"],
+                name="unique_event_details_override",
+            )
+        ]
+
+
 class GeocodedLocation(models.Model):
     normalized_name = models.CharField(max_length=500, unique=True)
     display_name = models.CharField(max_length=500)

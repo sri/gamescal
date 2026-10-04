@@ -23,7 +23,7 @@ from .forms import (
     CalendarEventRuleForm,
     CalendarImportForm,
     CalendarVisibilityRuleForm,
-    EventTimeForm,
+    EventEditForm,
     SavedLinkForm,
 )
 from .models import (
@@ -31,6 +31,7 @@ from .models import (
     CalendarEvent,
     CalendarEventRule,
     CalendarVisibilityRule,
+    EventDetailsOverride,
     EventTimeOverride,
     GeoapifyAPILog,
     SavedLink,
@@ -53,7 +54,6 @@ GAME_EVENT_TYPES = {
     CalendarEvent.EventType.TOURNAMENT,
 }
 DEMO_CALENDAR_URL = "https://gamescal.local/travel-demo.ics"
-FOLLOWUP_GAME_TITLE = "Next Playoff game, if advanced"
 
 
 def _debug_tools_requested(request):
@@ -798,6 +798,22 @@ def _time_overrides(calendar):
     }
 
 
+def _details_overrides(calendar):
+    return {
+        (override.external_uid, override.recurrence_id): override
+        for override in calendar.details_overrides.all()
+    }
+
+
+def _apply_details_override(event, override):
+    if override is not None:
+        event.title = override.title
+        event.location = override.location
+        event.address = override.address
+        event.status = override.status
+    return event
+
+
 def _apply_time_override(event, override):
     if override is not None:
         event.source_starts_at = event.starts_at
@@ -814,11 +830,12 @@ def calendar_preview(request, token):
     is_replacement = preview.get("mode") == "replace"
     if is_replacement:
         calendar = get_object_or_404(Calendar, pk=preview.get("calendar_id"))
-        overrides = _time_overrides(calendar)
+        time_overrides = _time_overrides(calendar)
+        details_overrides = _details_overrides(calendar)
         for event in result.events:
-            _apply_time_override(
-                event, overrides.get((event.external_uid, event.recurrence_id))
-            )
+            identity = (event.external_uid, event.recurrence_id)
+            _apply_time_override(event, time_overrides.get(identity))
+            _apply_details_override(event, details_overrides.get(identity))
         result.events.sort(key=lambda event: (event.starts_at, event.title))
         cancel_url = reverse("calendar_edit", kwargs={"pk": calendar.pk})
     else:
@@ -849,7 +866,14 @@ def calendar_preview(request, token):
     )
 
 
-def _event_model(calendar, event, rules=(), visibility_rules=(), time_override=None):
+def _event_model(
+    calendar,
+    event,
+    rules=(),
+    visibility_rules=(),
+    time_override=None,
+    details_override=None,
+):
     valid_statuses = {value for value, _label in CalendarEvent.Status.choices}
     status = event.status if event.status in valid_statuses else CalendarEvent.Status.CONFIRMED
     model = CalendarEvent(
@@ -872,6 +896,7 @@ def _event_model(calendar, event, rules=(), visibility_rules=(), time_override=N
         is_visible=visibility_for_event(event, visibility_rules)[0],
         raw_data=event.raw_data,
     )
+    _apply_details_override(model, details_override)
     return _apply_time_override(model, time_override)
 
 
@@ -935,34 +960,42 @@ def add_followup_game(request, pk):
     if source.event_type not in GAME_EVENT_TYPES:
         raise Http404
 
-    followup = CalendarEvent.objects.create(
+    clone = CalendarEvent.objects.create(
         calendar=source.calendar,
-        external_uid=f"manual-{uuid.uuid4()}",
-        title=FOLLOWUP_GAME_TITLE,
+        external_uid=f"clone-{uuid.uuid4()}",
+        title=source.title,
+        description=source.description,
         starts_at=source.starts_at,
-        ends_at=source.starts_at + GAME_DURATION,
+        ends_at=source.ends_at,
+        is_all_day=source.is_all_day,
         location=source.location,
         address=source.address,
-        status=CalendarEvent.Status.TENTATIVE,
-        event_type=CalendarEvent.EventType.GAME,
+        team1=source.team1,
+        team2=source.team2,
+        event_url=source.event_url,
+        status=source.status,
+        event_type=source.event_type,
         is_mine=source.is_mine,
+        is_visible=source.is_visible,
         is_manual=True,
         raw_data={"copied_from": source.external_uid},
     )
-    messages.success(request, "Added a tentative playoff game. Update its start time.")
-    return redirect("event_edit_times", pk=followup.pk)
+    messages.success(request, "Cloned the game. Update any details below.")
+    return redirect("event_edit_times", pk=clone.pk)
 
 
 @require_POST
 def delete_manual_event(request, pk):
     event = get_object_or_404(CalendarEvent, pk=pk, is_manual=True)
-    EventTimeOverride.objects.filter(
-        calendar=event.calendar,
-        external_uid=event.external_uid,
-        recurrence_id=event.recurrence_id,
-    ).delete()
+    identity = {
+        "calendar": event.calendar,
+        "external_uid": event.external_uid,
+        "recurrence_id": event.recurrence_id,
+    }
+    EventTimeOverride.objects.filter(**identity).delete()
+    EventDetailsOverride.objects.filter(**identity).delete()
     event.delete()
-    messages.success(request, "Deleted the manual playoff game.")
+    messages.success(request, "Deleted the cloned game.")
     return redirect(f'{reverse("home")}?view=games&scope=all')
 
 
@@ -973,33 +1006,64 @@ def edit_event_times(request, pk):
             CalendarEvent.objects.select_related("calendar").select_for_update(), pk=pk
         )
         with timezone.override(ZoneInfo(event.calendar.timezone)):
-            form = EventTimeForm(
+            form = EventEditForm(
                 request.POST if request.method == "POST" else None,
-                initial={
-                    "starts_at": event.starts_at,
-                    "ends_at": event.ends_at,
-                    "is_all_day": event.is_all_day,
-                },
+                event=event,
             )
             if request.method == "POST" and form.is_valid():
+                time_values = {
+                    field: form.cleaned_data[field]
+                    for field in ("starts_at", "ends_at", "is_all_day")
+                }
+                is_game = event.event_type in GAME_EVENT_TYPES
+                details_values = None
+                if is_game:
+                    edited_status = (
+                        CalendarEvent.Status.TENTATIVE
+                        if form.cleaned_data["is_tentative"]
+                        else (
+                            CalendarEvent.Status.CANCELLED
+                            if event.status == CalendarEvent.Status.CANCELLED
+                            else CalendarEvent.Status.CONFIRMED
+                        )
+                    )
+                    details_values = {
+                        "title": form.cleaned_data["title"],
+                        "location": form.cleaned_data["location"],
+                        "address": form.cleaned_data["address"],
+                        "status": edited_status,
+                    }
                 if not event.is_manual:
                     EventTimeOverride.objects.update_or_create(
                         calendar=event.calendar,
                         external_uid=event.external_uid,
                         recurrence_id=event.recurrence_id,
-                        defaults=form.cleaned_data,
+                        defaults=time_values,
                     )
+                    if details_values and any(
+                        getattr(event, field) != value
+                        for field, value in details_values.items()
+                    ):
+                        EventDetailsOverride.objects.update_or_create(
+                            calendar=event.calendar,
+                            external_uid=event.external_uid,
+                            recurrence_id=event.recurrence_id,
+                            defaults=details_values,
+                        )
                     if event.source_starts_at is None:
                         event.source_starts_at = event.starts_at
                         event.source_ends_at = event.ends_at
                         event.source_is_all_day = event.is_all_day
-                event.starts_at = form.cleaned_data["starts_at"]
-                event.ends_at = form.cleaned_data["ends_at"]
-                event.is_all_day = form.cleaned_data["is_all_day"]
+                event.starts_at = time_values["starts_at"]
+                event.ends_at = time_values["ends_at"]
+                event.is_all_day = time_values["is_all_day"]
+                if details_values:
+                    for field, value in details_values.items():
+                        setattr(event, field, value)
                 event.save()
                 messages.success(
                     request,
-                    "Saved manual times. Calendar refreshes will keep your changes.",
+                    "Saved your changes. Calendar refreshes will keep them.",
                 )
                 return redirect("event_edit_times", pk=event.pk)
             return render(
@@ -1080,7 +1144,8 @@ def _replace_calendar_events(calendar, result):
     with transaction.atomic():
         rules = list(calendar.event_rules.filter(is_active=True))
         visibility_rules = list(calendar.visibility_rules.filter(is_active=True))
-        overrides = _time_overrides(calendar)
+        time_overrides = _time_overrides(calendar)
+        details_overrides = _details_overrides(calendar)
         calendar.events.filter(is_manual=False).delete()
         CalendarEvent.objects.bulk_create(
             [
@@ -1089,7 +1154,12 @@ def _replace_calendar_events(calendar, result):
                     event,
                     rules,
                     visibility_rules,
-                    time_override=overrides.get((event.external_uid, event.recurrence_id)),
+                    time_override=time_overrides.get(
+                        (event.external_uid, event.recurrence_id)
+                    ),
+                    details_override=details_overrides.get(
+                        (event.external_uid, event.recurrence_id)
+                    ),
                 )
                 for event in result.events
             ]
