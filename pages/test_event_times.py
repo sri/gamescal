@@ -5,7 +5,7 @@ from unittest.mock import patch
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from .models import Calendar, CalendarEvent, EventTimeOverride
+from .models import Calendar, CalendarEvent, EventDetailsOverride, EventTimeOverride
 from .services import EventData, ImportResult
 from .views import _replace_calendar_events
 
@@ -187,20 +187,43 @@ class EventTimeTests(TestCase):
                 self.assertEqual(self.event.source_starts_at, NOW + timedelta(days=1, hours=1))
                 self.assertEqual(EventTimeOverride.objects.count(), 1)
                 home = self.client.get(reverse("home"), {"view": "all", "scope": "all"})
-                self.assertContains(home, self.edit_url, count=2)
+                self.assertContains(home, self.edit_url, count=4)
                 self.assertNotContains(home, "Manual time")
                 self.assertContains(home, 'class="manual-time-marker"', count=2)
                 self.assertContains(home, 'title="Manually updated time">*</span>', count=2)
                 self.assertContains(home, "10:30 AM")
-                edit_label = "Edit game" if event_type == CalendarEvent.EventType.GAME else "Edit times"
                 self.assertContains(
                     home,
                     f'<a class="event-time-link" href="{self.edit_url}" '
-                    f'title="{edit_label}" aria-label="{edit_label} for Team game">10:30 AM</a>',
+                    'title="Edit event" aria-label="Edit event Team game">10:30 AM</a>',
                     count=2,
                     html=True,
                 )
                 self.assertNotContains(home, ">Edit times</a>")
+
+    @patch("pages.views.fetch_and_parse_calendar")
+    def test_non_game_event_title_and_location_can_be_edited_and_survive_refresh(self, fetch):
+        self.event.event_type = CalendarEvent.EventType.PRACTICE
+        self.event.save()
+        response = self.client.post(self.edit_url, {
+            **self.manual_data,
+            "title": "Updated practice",
+            "location": "Training Center",
+            "address": "10 Practice Lane",
+        })
+        self.assertRedirects(response, self.edit_url)
+        self.event.refresh_from_db()
+        self.assertEqual(self.event.title, "Updated practice")
+        self.assertEqual(self.event.location, "Training Center")
+        self.assertEqual(self.event.address, "10 Practice Lane")
+        self.assertTrue(EventDetailsOverride.objects.exists())
+
+        fetch.return_value = self.feed_result()
+        self.client.post(reverse("calendars_refresh_all"))
+        event = self.calendar.events.get()
+        self.assertEqual(event.title, "Updated practice")
+        self.assertEqual(event.location, "Training Center")
+        self.assertEqual(event.address, "10 Practice Lane")
 
     def test_saved_manual_times_always_have_zero_seconds(self):
         response = self.client.post(self.edit_url, {
@@ -223,7 +246,7 @@ class EventTimeTests(TestCase):
         self.event.save()
         response = self.client.get(reverse("home"), {"view": "all", "scope": "all"})
         self.assertContains(response, 'class="event-time-link"', count=2)
-        self.assertContains(response, self.edit_url, count=2)
+        self.assertContains(response, self.edit_url, count=4)
         self.assertContains(response, "All day", count=2)
         self.assertNotContains(response, ">Edit times</a>")
         self.assertNotContains(response, 'class="manual-time-marker"')

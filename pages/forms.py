@@ -195,8 +195,7 @@ class EventEditForm(forms.Form):
         )
         super().__init__(*args, **kwargs)
         if event.event_type not in (event.EventType.GAME, event.EventType.TOURNAMENT):
-            for field in ("title", "location", "address", "is_tentative"):
-                self.fields.pop(field)
+            self.fields.pop("is_tentative")
 
     def clean_title(self):
         title = self.cleaned_data["title"].strip()

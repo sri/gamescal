@@ -163,7 +163,7 @@
                   <span class="event-weekday">{{ local_start|date:"D" }}</span>
                 </td>
                 <td class="text-nowrap">
-                  <a class="event-time-link" href="{% url 'event_edit_times' event.pk %}" title="{% if event.event_type == 'game' or event.event_type == 'tournament' %}Edit game{% else %}Edit times{% endif %}" aria-label="{% if event.event_type == 'game' or event.event_type == 'tournament' %}Edit game{% else %}Edit times{% endif %} for {{ event.title }}">{% if event.is_all_day %}<span class="text-body-secondary">All day</span>{% else %}{{ local_start|time:"g:i A" }}{% endif %}</a>
+                  <a class="event-time-link" href="{% url 'event_edit_times' event.pk %}" title="Edit event" aria-label="Edit event {{ event.title }}">{% if event.is_all_day %}<span class="text-body-secondary">All day</span>{% else %}{{ local_start|time:"g:i A" }}{% endif %}</a>
                   {% include 'pages/_manual_time_marker.html' %}
                 </td>
                 <td class="event-title-cell">
@@ -221,7 +221,7 @@
                 </div>
                 <div class="mobile-event-time">
                   <span>{{ local_start|date:"D" }}</span>
-                  <strong><a class="event-time-link" href="{% url 'event_edit_times' event.pk %}" title="{% if event.event_type == 'game' or event.event_type == 'tournament' %}Edit game{% else %}Edit times{% endif %}" aria-label="{% if event.event_type == 'game' or event.event_type == 'tournament' %}Edit game{% else %}Edit times{% endif %} for {{ event.title }}">{% if event.is_all_day %}All day{% else %}{{ local_start|time:"g:i A" }}{% endif %}</a> {% include 'pages/_manual_time_marker.html' %}</strong>
+                  <strong><a class="event-time-link" href="{% url 'event_edit_times' event.pk %}" title="Edit event" aria-label="Edit event {{ event.title }}">{% if event.is_all_day %}All day{% else %}{{ local_start|time:"g:i A" }}{% endif %}</a> {% include 'pages/_manual_time_marker.html' %}</strong>
                 </div>
               </div>
               <div class="calendar-name-actions mobile-calendar-actions">

@@ -1015,8 +1015,12 @@ def edit_event_times(request, pk):
                     field: form.cleaned_data[field]
                     for field in ("starts_at", "ends_at", "is_all_day")
                 }
+                time_changed = any(
+                    getattr(event, field) != value
+                    for field, value in time_values.items()
+                )
                 is_game = event.event_type in GAME_EVENT_TYPES
-                details_values = None
+                edited_status = event.status
                 if is_game:
                     edited_status = (
                         CalendarEvent.Status.TENTATIVE
@@ -1027,20 +1031,21 @@ def edit_event_times(request, pk):
                             else CalendarEvent.Status.CONFIRMED
                         )
                     )
-                    details_values = {
-                        "title": form.cleaned_data["title"],
-                        "location": form.cleaned_data["location"],
-                        "address": form.cleaned_data["address"],
-                        "status": edited_status,
-                    }
+                details_values = {
+                    "title": form.cleaned_data["title"],
+                    "location": form.cleaned_data["location"],
+                    "address": form.cleaned_data["address"],
+                    "status": edited_status,
+                }
                 if not event.is_manual:
-                    EventTimeOverride.objects.update_or_create(
-                        calendar=event.calendar,
-                        external_uid=event.external_uid,
-                        recurrence_id=event.recurrence_id,
-                        defaults=time_values,
-                    )
-                    if details_values and any(
+                    if time_changed:
+                        EventTimeOverride.objects.update_or_create(
+                            calendar=event.calendar,
+                            external_uid=event.external_uid,
+                            recurrence_id=event.recurrence_id,
+                            defaults=time_values,
+                        )
+                    if any(
                         getattr(event, field) != value
                         for field, value in details_values.items()
                     ):
@@ -1050,16 +1055,15 @@ def edit_event_times(request, pk):
                             recurrence_id=event.recurrence_id,
                             defaults=details_values,
                         )
-                    if event.source_starts_at is None:
+                    if time_changed and event.source_starts_at is None:
                         event.source_starts_at = event.starts_at
                         event.source_ends_at = event.ends_at
                         event.source_is_all_day = event.is_all_day
                 event.starts_at = time_values["starts_at"]
                 event.ends_at = time_values["ends_at"]
                 event.is_all_day = time_values["is_all_day"]
-                if details_values:
-                    for field, value in details_values.items():
-                        setattr(event, field, value)
+                for field, value in details_values.items():
+                    setattr(event, field, value)
                 event.save()
                 messages.success(
                     request,

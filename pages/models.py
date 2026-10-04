@@ -132,7 +132,7 @@ class EventTimeOverride(models.Model):
 
 
 class EventDetailsOverride(models.Model):
-    """Editable game details keyed by feed identity so refreshes preserve them."""
+    """Editable event details keyed by feed identity so refreshes preserve them."""
 
     calendar = models.ForeignKey(
         Calendar, on_delete=models.CASCADE, related_name="details_overrides"

@@ -1021,6 +1021,7 @@ a {
   margin: 0;
 }
 
+.event-edit-button,
 .followup-game-button {
   display: inline-flex;
   align-items: center;
@@ -1035,8 +1036,11 @@ a {
   font-size: 1rem;
   line-height: 1;
   opacity: 0.65;
+  text-decoration: none;
 }
 
+.event-edit-button:hover,
+.event-edit-button:focus-visible,
 .followup-game-button:hover,
 .followup-game-button:focus-visible {
   border-color: var(--bs-secondary-color);
