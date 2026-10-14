@@ -1020,17 +1020,18 @@ def edit_event_times(request, pk):
                     for field, value in time_values.items()
                 )
                 is_game = event.event_type in GAME_EVENT_TYPES
-                edited_status = event.status
-                if is_game:
+                if form.cleaned_data["is_cancelled"]:
+                    edited_status = CalendarEvent.Status.CANCELLED
+                elif is_game:
                     edited_status = (
                         CalendarEvent.Status.TENTATIVE
                         if form.cleaned_data["is_tentative"]
-                        else (
-                            CalendarEvent.Status.CANCELLED
-                            if event.status == CalendarEvent.Status.CANCELLED
-                            else CalendarEvent.Status.CONFIRMED
-                        )
+                        else CalendarEvent.Status.CONFIRMED
                     )
+                elif event.status == CalendarEvent.Status.CANCELLED:
+                    edited_status = CalendarEvent.Status.CONFIRMED
+                else:
+                    edited_status = event.status
                 details_values = {
                     "title": form.cleaned_data["title"],
                     "location": form.cleaned_data["location"],

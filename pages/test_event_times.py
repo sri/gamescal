@@ -201,6 +201,62 @@ class EventTimeTests(TestCase):
                 )
                 self.assertNotContains(home, ">Edit times</a>")
 
+    @patch("pages.views.timezone.now", return_value=NOW)
+    def test_games_and_practices_can_be_marked_cancelled_and_restored(self, _now):
+        for event_type in (CalendarEvent.EventType.GAME, CalendarEvent.EventType.PRACTICE):
+            with self.subTest(event_type=event_type):
+                self.event.event_type = event_type
+                self.event.status = CalendarEvent.Status.CONFIRMED
+                self.event.save()
+                EventDetailsOverride.objects.all().delete()
+
+                edit_page = self.client.get(self.edit_url)
+                self.assertContains(edit_page, 'name="is_cancelled"')
+                self.assertContains(edit_page, "show it crossed out")
+
+                response = self.client.post(
+                    self.edit_url, {**self.manual_data, "is_cancelled": "on"}
+                )
+                self.assertRedirects(response, self.edit_url)
+                self.event.refresh_from_db()
+                self.assertEqual(self.event.status, CalendarEvent.Status.CANCELLED)
+                self.assertEqual(
+                    EventDetailsOverride.objects.get().status,
+                    CalendarEvent.Status.CANCELLED,
+                )
+
+                home = self.client.get(
+                    reverse("home"), {"view": "all", "scope": "all"}
+                )
+                self.assertContains(home, 'class="event-cancelled ', count=1)
+                self.assertContains(
+                    home, 'class="mobile-event-card mobile-event-cancelled ', count=1
+                )
+                self.assertContains(home, ">Cancelled</span>", count=2)
+
+                response = self.client.post(
+                    self.edit_url,
+                    {
+                        **self.manual_data,
+                        "title": self.event.title,
+                        "location": self.event.location,
+                        "address": self.event.address,
+                    },
+                )
+                self.assertRedirects(response, self.edit_url)
+                self.event.refresh_from_db()
+                self.assertEqual(self.event.status, CalendarEvent.Status.CONFIRMED)
+
+    @patch("pages.views.fetch_and_parse_calendar")
+    def test_cancelled_status_survives_calendar_refresh(self, fetch):
+        self.client.post(self.edit_url, {**self.manual_data, "is_cancelled": "on"})
+        fetch.return_value = self.feed_result()
+
+        self.client.post(reverse("calendars_refresh_all"))
+
+        event = self.calendar.events.get()
+        self.assertEqual(event.status, CalendarEvent.Status.CANCELLED)
+
     @patch("pages.views.fetch_and_parse_calendar")
     def test_non_game_event_title_and_location_can_be_edited_and_survive_refresh(self, fetch):
         self.event.event_type = CalendarEvent.EventType.PRACTICE

@@ -159,10 +159,22 @@ class EventEditForm(forms.Form):
         help_text="Optional. Used for directions when it differs from the location name.",
         widget=forms.TextInput(attrs={"class": "form-control"}),
     )
+    is_cancelled = forms.BooleanField(
+        required=False,
+        label="Cancelled",
+        help_text=(
+            "Keep this event on Gamescal, but show it crossed out with a red "
+            "Cancelled label."
+        ),
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )
     is_tentative = forms.BooleanField(
         required=False,
         label="Tentative",
-        help_text="Use this when the game depends on the result of an earlier game.",
+        help_text=(
+            "Use this when the game depends on the result of an earlier game. "
+            "Cancelled takes precedence."
+        ),
         widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
     )
 
@@ -175,7 +187,9 @@ class EventEditForm(forms.Form):
             data["title"] = event.title
             data["location"] = event.location
             data["address"] = event.address
-            if event.status == event.Status.TENTATIVE:
+            if event.status == event.Status.CANCELLED:
+                data["is_cancelled"] = "on"
+            elif event.status == event.Status.TENTATIVE:
                 data["is_tentative"] = "on"
             if args:
                 args = (data, *args[1:])
@@ -190,6 +204,7 @@ class EventEditForm(forms.Form):
                 "is_all_day": event.is_all_day,
                 "location": event.location,
                 "address": event.address,
+                "is_cancelled": event.status == event.Status.CANCELLED,
                 "is_tentative": event.status == event.Status.TENTATIVE,
             }
         )

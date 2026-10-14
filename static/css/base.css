@@ -1067,7 +1067,9 @@ a {
 
 .event-cancelled td {
   opacity: 0.6;
-  text-decoration: line-through;
+  text-decoration-line: line-through;
+  text-decoration-color: var(--bs-danger);
+  text-decoration-thickness: 2px;
 }
 
 .mobile-event-list {
@@ -1263,7 +1265,9 @@ a {
 }
 
 .mobile-event-cancelled .mobile-event-title {
-  text-decoration: line-through;
+  text-decoration-line: line-through;
+  text-decoration-color: var(--bs-danger);
+  text-decoration-thickness: 2px;
 }
 
 .mobile-event-has-gap {
