@@ -452,11 +452,8 @@ class HomePageView(TemplateView):
         events = list(events.order_by("starts_at", "title")[:2000])
         if event_view == "games":
             events = [event for event in events if not _is_placeholder_game(event)]
-        events = _hide_finished_game_days(
-            events,
-            now,
-            preserve_placeholders=event_view == "all",
-        )
+        if event_view == "games":
+            events = _hide_finished_game_days(events, now)
         events = _annotate_schedule_conflicts(events[:500])
         events = _annotate_game_gaps(events)
         _annotate_game_directions(events)

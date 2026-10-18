@@ -422,7 +422,7 @@ class PageTests(TestCase):
         )
 
     @patch("pages.views.timezone.now")
-    def test_game_day_disappears_after_the_last_game_runs_for_50_minutes(
+    def test_finished_game_day_is_hidden_from_games_but_remains_in_all(
         self, mocked_now
     ):
         arizona = ZoneInfo("America/Phoenix")
@@ -461,8 +461,8 @@ class PageTests(TestCase):
         self.assertNotContains(after_final_ends, "Saturday morning game")
         self.assertNotContains(after_final_ends, "Saturday final game")
         self.assertContains(after_final_ends, "Sunday game")
-        self.assertNotContains(all_events, "Saturday morning game")
-        self.assertNotContains(all_events, "Saturday final game")
+        self.assertContains(all_events, "Saturday morning game")
+        self.assertContains(all_events, "Saturday final game")
         self.assertContains(all_events, "Sunday game")
         self.assertEqual(default_view.context["event_view"], "games")
 
