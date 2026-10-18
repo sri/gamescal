@@ -170,7 +170,6 @@
                   <div class="fw-semibold">
                     {% if event.event_url %}<a href="{{ event.event_url }}" target="_blank" rel="noopener noreferrer">{{ event.title }}</a>{% else %}{{ event.title }}{% endif %}
                   </div>
-                  {% if event.team1 and event.team2 %}<div class="small text-body-secondary">{{ event.team1 }} vs {{ event.team2 }}</div>{% endif %}
                   <span class="badge event-type-{{ event.event_type }} mt-1">{{ event.get_event_type_display }}</span>
                   {% if event.calendar.is_mine %}<span class="badge text-bg-primary mt-1">Mine</span>{% endif %}
                   {% if event.status == 'cancelled' %}<span class="badge text-bg-danger mt-1">{{ event.get_status_display }}</span>{% endif %}

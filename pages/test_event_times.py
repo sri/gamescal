@@ -108,6 +108,7 @@ class EventTimeTests(TestCase):
         self.assertIsNone(followup.source_starts_at)
 
         home = self.client.get(reverse("home"), {"view": "all", "scope": "all"})
+        self.assertNotContains(home, "My Team vs First Opponent")
         self.assertNotContains(home, ">Manual</span>")
         self.assertNotContains(home, ">Tentative</span>")
         clone_url = reverse("event_add_followup", kwargs={"pk": followup.pk})
