@@ -138,6 +138,11 @@ class PageTests(TestCase):
             )
         )
         self.assertContains(games, 'id="food-nearby-heading"')
+        games_html = games.content.decode()
+        self.assertLess(
+            games_html.index('id="food-nearby-heading"'),
+            games_html.index('id="calendars-heading"'),
+        )
         for label in ("🍔 Fast Food", "🌯 Chipotle", "🍕 Pizza", "🍽️ Restaurants"):
             self.assertContains(games, label)
         self.assertContains(
