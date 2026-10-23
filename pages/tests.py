@@ -1858,6 +1858,37 @@ END:VCALENDAR\r
         )
         self.assertTrue(result.events[0].starts_at.tzinfo)
 
+    def test_calendar_name_classifies_ambiguous_tournament_events(self):
+        content = b"""BEGIN:VCALENDAR\r
+VERSION:2.0\r
+PRODID:-//Gamescal Tests//EN\r
+X-WR-CALNAME:Youth Basketball Tournament Schedule\r
+BEGIN:VEVENT\r
+UID:circuit\r
+DTSTART;VALUE=DATE:20270501\r
+DTEND;VALUE=DATE:20270503\r
+SUMMARY:Basketball: Under Armour Circuit\r
+END:VEVENT\r
+BEGIN:VEVENT\r
+UID:practice\r
+DTSTART;VALUE=DATE:20270508\r
+DTEND;VALUE=DATE:20270509\r
+SUMMARY:Basketball practice\r
+END:VEVENT\r
+END:VCALENDAR\r
+"""
+        with patch("pages.services.timezone.now") as now:
+            now.return_value = datetime(2026, 10, 23, tzinfo=dt_timezone.utc)
+            result = parse_calendar(content)
+
+        self.assertEqual(len(result.events), 2)
+        self.assertEqual(result.events[0].event_type, "tournament")
+        self.assertEqual(result.events[1].event_type, "practice")
+        self.assertEqual(
+            result.events[0].raw_data["calendar_name"],
+            "Youth Basketball Tournament Schedule",
+        )
+
     def test_floating_times_are_interpreted_as_arizona_time(self):
         content = b"""BEGIN:VCALENDAR\r
 VERSION:2.0\r

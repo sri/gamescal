@@ -248,16 +248,29 @@ def classify_event(event, rules=()):
     searchable = f"{event.title} {categories}".casefold()
     if re.search(r"\b(practice|training|workout)\b", searchable):
         return "practice"
-    if re.search(r"\b(tournament|championship|playoffs?)\b", searchable):
+    if re.search(r"\b(tournament|championship|playoffs?|finals?)\b", searchable):
         return "tournament"
     if re.search(r"\b(game|match|scrimmage)\b", searchable) or _teams_from_title(
         event.title
     ) != ("", ""):
         return "game"
+
+    # Some tournament feeds use event names such as “Grassroots 365” or
+    # “Under Armour Circuit” with no classification keyword in each event.
+    # Use the feed name as a fallback only when the event itself was ambiguous.
+    calendar_name = str(event.raw_data.get("calendar_name", "")).casefold()
+    if re.search(r"\b(practice|training|workout)\b", calendar_name):
+        return "practice"
+    if re.search(
+        r"\b(tournament|championship|playoffs?|finals?)\b", calendar_name
+    ):
+        return "tournament"
+    if re.search(r"\b(game|match|scrimmage)\b", calendar_name):
+        return "game"
     return "other"
 
 
-def _event_data(component, calendar_tz):
+def _event_data(component, calendar_tz, calendar_name=""):
     start_value = _decoded(component, "DTSTART")
     if start_value is None:
         return None
@@ -308,6 +321,7 @@ def _event_data(component, calendar_tz):
         raw_data={
             "categories": category_values,
             "organizer": _text(component, "ORGANIZER"),
+            "calendar_name": calendar_name,
         },
     )
     event.event_type = classify_event(event)
@@ -323,6 +337,7 @@ def parse_calendar(content, source_url="", source_name=""):
         ) from exc
 
     calendar_tz = _calendar_timezone(calendar)
+    calendar_name = str(calendar.get("X-WR-CALNAME", "")).strip()
     # recurring_ical_events uses X-WR-TIMEZONE for floating values, so override
     # feed metadata to ensure those values are interpreted as Arizona wall time.
     calendar["X-WR-TIMEZONE"] = calendar_tz
@@ -340,7 +355,7 @@ def parse_calendar(content, source_url="", source_name=""):
     seen = set()
     warnings = []
     for component in components:
-        event = _event_data(component, calendar_tz)
+        event = _event_data(component, calendar_tz, calendar_name)
         if event is None:
             warnings.append("An event without a start date was skipped.")
             continue
@@ -360,7 +375,7 @@ def parse_calendar(content, source_url="", source_name=""):
 
     events.sort(key=lambda event: (event.starts_at, event.title))
     parsed_host = urlparse(source_url).hostname or "Imported calendar"
-    name = str(calendar.get("X-WR-CALNAME", "")).strip() or source_name or parsed_host
+    name = calendar_name or source_name or parsed_host
     return ImportResult(
         name=name[:255], timezone=calendar_tz, events=events, warnings=warnings
     )
