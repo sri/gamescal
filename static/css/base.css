@@ -355,14 +355,6 @@ html[data-theme]:not([data-theme="default"]) .btn-outline-success {
   --bs-btn-active-border-color: var(--theme-green);
 }
 
-html[data-theme]:not([data-theme="default"]) .event-filter-tabs,
-html[data-theme]:not([data-theme="default"]) .event-scope-tabs {
-  --bs-nav-link-color: var(--theme-muted);
-  --bs-nav-link-hover-color: var(--bs-emphasis-color);
-  --bs-nav-pills-link-active-color: var(--theme-accent-text);
-  --bs-nav-pills-link-active-bg: var(--theme-accent);
-}
-
 html[data-theme]:not([data-theme="default"]) .alert-info {
   --bs-alert-color: var(--theme-accent);
   --bs-alert-bg: color-mix(in srgb, var(--theme-accent) 14%, var(--theme-surface-deep));
@@ -456,31 +448,21 @@ html[data-theme]:not([data-theme="default"]) .mobile-event-external-calendar .lo
 html[data-theme]:not([data-theme="default"]) .event-external-calendar .location-chip,
 html[data-theme]:not([data-theme="default"]) .event-external-calendar .calendar-label,
 html[data-theme]:not([data-theme="default"]) .mobile-event-external-calendar .calendar-label,
-html[data-theme]:not([data-theme="default"]) .mobile-event-external-calendar .mobile-location-link,
-html[data-theme]:not([data-theme="default"]) .event-external-calendar .event-type-game,
-html[data-theme]:not([data-theme="default"]) .event-external-calendar .event-type-practice,
-html[data-theme]:not([data-theme="default"]) .event-external-calendar .event-type-tournament,
-html[data-theme]:not([data-theme="default"]) .mobile-event-external-calendar .event-type-game,
-html[data-theme]:not([data-theme="default"]) .mobile-event-external-calendar .event-type-practice,
-html[data-theme]:not([data-theme="default"]) .mobile-event-external-calendar .event-type-tournament {
+html[data-theme]:not([data-theme="default"]) .mobile-event-external-calendar .mobile-location-link {
   border-color: var(--theme-border);
   color: var(--theme-muted);
   background: var(--theme-surface);
 }
 
-html[data-theme]:not([data-theme="default"]) .event-type-game {
+html[data-theme]:not([data-theme="default"]) .event-type-game,
+html[data-theme]:not([data-theme="default"]) .event-type-tournament {
   color: var(--theme-accent-text);
-  background: var(--theme-blue);
+  background: var(--theme-accent);
 }
 
 html[data-theme]:not([data-theme="default"]) .event-type-practice {
   color: var(--theme-accent-text);
-  background: var(--theme-yellow);
-}
-
-html[data-theme]:not([data-theme="default"]) .event-type-tournament {
-  color: var(--theme-accent-text);
-  background: var(--theme-green);
+  background: color-mix(in srgb, var(--theme-accent) 70%, white);
 }
 
 html[data-theme]:not([data-theme="default"]) .event-type-other {
@@ -565,15 +547,25 @@ a {
   border-top: 1px solid var(--bs-border-color);
 }
 
-.event-filter-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.schedule-sections {
+  display: grid;
+  gap: 2rem;
 }
 
-.event-scope-tabs {
-  flex: 0 0 auto;
-  margin-left: auto;
+.schedule-section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.schedule-empty {
+  padding: 2rem 1rem;
+  border: 1px dashed var(--bs-border-color);
+  border-radius: 0.75rem;
+  color: var(--bs-secondary-color);
+  background: var(--bs-tertiary-bg);
+  text-align: center;
 }
 
 .schedule-conflict {
@@ -908,16 +900,6 @@ a {
 
 .event-external-calendar .calendar-label,
 .mobile-event-external-calendar .calendar-label {
-  color: #57534e;
-  background: #e7e5e4;
-}
-
-.event-external-calendar .event-type-game,
-.event-external-calendar .event-type-practice,
-.event-external-calendar .event-type-tournament,
-.mobile-event-external-calendar .event-type-game,
-.mobile-event-external-calendar .event-type-practice,
-.mobile-event-external-calendar .event-type-tournament {
   color: #57534e;
   background: #e7e5e4;
 }
@@ -1314,45 +1296,20 @@ a {
   border-left-color: rgb(127 29 29 / 30%);
 }
 
-.event-type-game {
-  color: #084298;
-  background: #cfe2ff;
+.event-type-game,
+.event-type-tournament {
+  color: #fff;
+  background: var(--bs-primary);
 }
 
 .event-type-practice {
-  color: #664d03;
-  background: #fff3cd;
-}
-
-.event-type-tournament {
-  color: #0f5132;
-  background: #d1e7dd;
+  color: #052c65;
+  background: color-mix(in srgb, var(--bs-primary) 70%, white);
 }
 
 .event-type-other {
   color: #41464b;
   background: #e2e3e5;
-}
-
-.event-filter-tabs,
-.event-scope-tabs {
-  flex-wrap: nowrap;
-  padding: 0.15rem;
-  border: 1px solid var(--bs-border-color);
-  border-radius: 0.55rem;
-  background: var(--bs-tertiary-bg);
-}
-
-.event-filter-tabs .nav-link,
-.event-scope-tabs .nav-link {
-  padding: 0.25rem 0.65rem;
-  font-size: 0.85rem;
-  white-space: nowrap;
-}
-
-.event-all-filter {
-  width: 8.5rem;
-  min-width: 0;
 }
 
 .api-log-stats {
@@ -1519,23 +1476,6 @@ a {
 }
 
 @media (max-width: 575.98px) {
-  .event-filter-bar {
-    flex-wrap: wrap;
-    gap: 0.35rem;
-  }
-
-  .event-filter-tabs .nav-link,
-  .event-scope-tabs .nav-link {
-    padding: 0.2rem 0.45rem;
-    font-size: 0.78rem;
-    text-align: center;
-  }
-
-  .event-all-filter {
-    width: 100%;
-    order: 3;
-  }
-
   .calendar-row {
     align-items: flex-start;
     flex-wrap: wrap;

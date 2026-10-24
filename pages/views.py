@@ -3,7 +3,6 @@ import secrets
 import uuid
 from datetime import datetime, time, timedelta
 from pathlib import Path
-from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
@@ -366,124 +365,92 @@ class HomePageView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        all_event_type = self.request.GET.get("type", "all")
-        if all_event_type not in {"all", "games", "practices"}:
-            all_event_type = "all"
-
         calendars = list(
             Calendar.objects.annotate(event_count=Count("events")).order_by("name")
         )
-        active_calendars = [calendar for calendar in calendars if calendar.is_active]
-
-        event_scope = self.request.GET.get("scope", "mine")
-        if event_scope not in {"all", "mine", "others"}:
-            event_scope = "all"
 
         now = timezone.now()
         local_timezone = ZoneInfo(settings.TIME_ZONE)
         local_today = timezone.localtime(now, local_timezone).date()
-        week_start_date = local_today - timedelta(days=local_today.weekday())
-        today_start = datetime.combine(local_today, time.min, tzinfo=local_timezone)
-        week_start = datetime.combine(
-            week_start_date, time.min, tzinfo=local_timezone
+        if local_today.weekday() == 6:
+            weekend_start_date = local_today - timedelta(days=1)
+        else:
+            weekend_start_date = local_today + timedelta(
+                days=(5 - local_today.weekday()) % 7
+            )
+        weekend_start = datetime.combine(
+            weekend_start_date, time.min, tzinfo=local_timezone
         )
-        week_end = week_start + timedelta(days=7)
-        practice_week_start = week_start
-        if local_today.weekday() >= 4:  # On Friday, roll practices to next week.
-            practice_week_start += timedelta(days=7)
-        practice_week_end = practice_week_start + timedelta(days=7)
+        next_week_start = weekend_start + timedelta(days=2)
+        next_week_end = next_week_start + timedelta(days=7)
 
-        upcoming_events = CalendarEvent.objects.select_related("calendar").filter(
+        displayed_events = CalendarEvent.objects.select_related("calendar").filter(
             calendar__is_active=True,
             is_visible=True,
-            ends_at__gt=today_start,
         )
-        game_week_events = upcoming_events.filter(
-            starts_at__gte=week_start,
-            starts_at__lt=week_end,
+        weekend_events = list(
+            displayed_events.filter(
+                event_type__in=GAME_EVENT_TYPES,
+                starts_at__lt=next_week_start,
+                ends_at__gt=weekend_start,
+            ).order_by("starts_at", "title")[:2000]
         )
-        practice_week_events = upcoming_events.filter(
-            starts_at__gte=practice_week_start,
-            starts_at__lt=practice_week_end,
-        )
+        weekend_events = [
+            event for event in weekend_events if not _is_placeholder_game(event)
+        ]
+        weekend_events = _hide_finished_game_days(weekend_events, now)
 
-        requested_view = self.request.GET.get("view")
-        default_week_events = game_week_events
-        if event_scope == "mine":
-            default_week_events = default_week_events.filter(calendar__is_mine=True)
-        elif event_scope == "others":
-            default_week_events = default_week_events.filter(calendar__is_mine=False)
-
-        if requested_view in {"games", "practices", "all"}:
-            event_view = requested_view
-        else:
-            default_games = list(
-                default_week_events.filter(event_type__in=GAME_EVENT_TYPES).order_by(
-                    "starts_at", "title"
-                )[:2000]
+        next_week_events = list(
+            displayed_events.filter(
+                event_type__in={
+                    CalendarEvent.EventType.GAME,
+                    CalendarEvent.EventType.PRACTICE,
+                    CalendarEvent.EventType.TOURNAMENT,
+                },
+                starts_at__gte=next_week_start,
+                starts_at__lt=next_week_end,
+            ).order_by("starts_at", "title")[:2000]
+        )
+        next_week_events = [
+            event
+            for event in next_week_events
+            if not (
+                event.event_type in GAME_EVENT_TYPES
+                and _is_placeholder_game(event)
             )
-            default_games = [
-                event for event in default_games if not _is_placeholder_game(event)
-            ]
-            default_games = _hide_finished_game_days(default_games, now)
-            event_view = "games" if default_games else "practices"
+        ]
 
-        if event_view == "games":
-            events = game_week_events
-        elif event_view == "practices":
-            events = practice_week_events
-        else:
-            events = upcoming_events
-
-        if event_scope == "mine":
-            events = events.filter(calendar__is_mine=True)
-        elif event_scope == "others":
-            events = events.filter(calendar__is_mine=False)
-
-        if event_view == "games" or (
-            event_view == "all" and all_event_type == "games"
-        ):
-            events = events.filter(event_type__in=GAME_EVENT_TYPES)
-        elif event_view == "practices" or (
-            event_view == "all" and all_event_type == "practices"
-        ):
-            events = events.filter(event_type=CalendarEvent.EventType.PRACTICE)
-
-        events = list(events.order_by("starts_at", "title")[:2000])
-        if event_view == "games":
-            events = [event for event in events if not _is_placeholder_game(event)]
-        if event_view == "games":
-            events = _hide_finished_game_days(events, now)
-        events = _annotate_schedule_conflicts(events[:500])
+        events = weekend_events + next_week_events
+        events = _annotate_schedule_conflicts(events)
         events = _annotate_game_gaps(events)
         _annotate_game_directions(events)
         _annotate_travel_times(events)
 
-        def event_filter_url(view, *, scope=event_scope, event_type=None):
-            params = [("view", view), ("scope", scope)]
-            if view == "all":
-                params.append(("type", event_type or all_event_type))
-            if _debug_tools_requested(self.request):
-                params.append(("debug", "1"))
-            return f"?{urlencode(params)}"
-
+        weekend_count = len(weekend_events)
+        weekend_events = events[:weekend_count]
+        next_week_events = events[weekend_count:]
+        context["schedule_sections"] = (
+            {
+                "slug": "this-weekend",
+                "title": "This Weekend",
+                "starts_on": weekend_start_date,
+                "ends_on": weekend_start_date + timedelta(days=1),
+                "events": weekend_events,
+                "empty_message": "No games this weekend.",
+            },
+            {
+                "slug": "next-week",
+                "title": "Next Week",
+                "starts_on": next_week_start.date(),
+                "ends_on": (next_week_end - timedelta(days=1)).date(),
+                "events": next_week_events,
+                "empty_message": "No games or practices next week.",
+            },
+        )
         context["calendars"] = calendars
-        context["active_calendars"] = active_calendars
         context["has_refreshable_calendars"] = any(
             calendar.cal_url for calendar in calendars
         )
-        context["event_scope"] = event_scope
-        context["event_view_urls"] = {
-            view: event_filter_url(view) for view in ("games", "practices", "all")
-        }
-        context["event_scope_urls"] = {
-            scope: event_filter_url(event_view, scope=scope)
-            for scope in ("all", "mine", "others")
-        }
-        context["all_type_urls"] = {
-            event_type: event_filter_url("all", event_type=event_type)
-            for event_type in ("all", "games", "practices")
-        }
         saved_links = list(SavedLink.objects.all())
         context["managed_saved_links"] = saved_links
         context["saved_links"] = [link for link in saved_links if not link.is_hidden]
@@ -492,11 +459,7 @@ class HomePageView(TemplateView):
             self.request.GET.get("calendars") == "open"
         )
         context["events"] = events
-        context["food_locations"] = (
-            _food_locations(events) if event_view in {"games", "practices"} else []
-        )
-        context["event_view"] = event_view
-        context["all_event_type"] = all_event_type
+        context["food_locations"] = _food_locations(events)
         request_debug = _debug_tools_requested(self.request)
         context["request_debug"] = request_debug
         context["show_demo_tools"] = settings.ENABLE_DEMO_TOOLS or request_debug

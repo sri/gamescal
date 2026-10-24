@@ -42,8 +42,8 @@ estimate driving time, distance, and the usable buffer between games.
 - **One schedule** — import ICS calendars from feed URLs or uploaded files and see their events together.
 - **Mobile friendly** — compact event cards make dates, times, venues, and teams easy
   to scan on the go.
-- **Useful event views** — keep Games and Practices within the current Monday–Sunday
-  week, filter Games and All by ownership, and use All to browse every upcoming event.
+- **Focused schedule** — see this weekend’s games first, followed by next week’s games
+  and practices from every active calendar.
 - **Smart rules** — classify event types and use per-calendar Show only/Hide
   visibility rules, with a full marked preview for safely refining filters.
 - **Schedule cross-checking** — match your team in official league feeds and flag time

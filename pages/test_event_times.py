@@ -29,14 +29,14 @@ class EventTimeTests(TestCase):
             calendar=self.calendar,
             external_uid="game-1",
             title="Team game",
-            starts_at=NOW + timedelta(days=1, hours=1),
-            ends_at=NOW + timedelta(days=1, hours=2),
+            starts_at=NOW + timedelta(days=5, hours=1),
+            ends_at=NOW + timedelta(days=5, hours=2),
             event_type=CalendarEvent.EventType.GAME,
         )
         self.edit_url = reverse("event_edit_times", kwargs={"pk": self.event.pk})
         self.manual_data = {
-            "starts_at": "2026-08-13T10:30:00",
-            "ends_at": "2026-08-13T11:45:00",
+            "starts_at": "2026-08-17T10:30:00",
+            "ends_at": "2026-08-17T11:45:00",
         }
 
     def feed_result(self):
@@ -44,8 +44,8 @@ class EventTimeTests(TestCase):
             name="Team", timezone="America/Phoenix",
             events=[EventData(
                 external_uid="game-1", recurrence_id="", title="Team game",
-                description="", starts_at=NOW + timedelta(days=1, hours=3),
-                ends_at=NOW + timedelta(days=1, hours=4), is_all_day=False,
+                description="", starts_at=NOW + timedelta(days=5, hours=3),
+                ends_at=NOW + timedelta(days=5, hours=4), is_all_day=False,
                 location="", address="", team1="", team2="", event_url="",
                 status="confirmed",
             )],
@@ -164,7 +164,7 @@ class EventTimeTests(TestCase):
         self.event.save()
         response = self.client.get(self.edit_url)
         self.assertContains(response, 'type="datetime-local"')
-        self.assertContains(response, 'value="2026-08-13T10:00"')
+        self.assertContains(response, 'value="2026-08-17T10:00"')
         self.assertContains(response, 'step="60"', count=2)
         self.event.refresh_from_db()
         self.assertEqual(self.event.starts_at.second, 37)
@@ -185,7 +185,7 @@ class EventTimeTests(TestCase):
                 self.assertEqual(self.event.starts_at.minute, 30)
                 self.assertEqual(self.event.ends_at.hour, 18)
                 self.assertEqual(self.event.ends_at.minute, 45)
-                self.assertEqual(self.event.source_starts_at, NOW + timedelta(days=1, hours=1))
+                self.assertEqual(self.event.source_starts_at, NOW + timedelta(days=5, hours=1))
                 self.assertEqual(EventTimeOverride.objects.count(), 1)
                 home = self.client.get(reverse("home"), {"view": "all", "scope": "all"})
                 self.assertContains(home, self.edit_url, count=4)
@@ -229,10 +229,8 @@ class EventTimeTests(TestCase):
                 home = self.client.get(
                     reverse("home"), {"view": "all", "scope": "all"}
                 )
-                self.assertContains(home, 'class="event-cancelled ', count=1)
-                self.assertContains(
-                    home, 'class="mobile-event-card mobile-event-cancelled ', count=1
-                )
+                self.assertContains(home, "event-cancelled event-", count=1)
+                self.assertContains(home, "mobile-event-cancelled", count=1)
                 self.assertContains(home, ">Cancelled</span>", count=2)
 
                 response = self.client.post(
@@ -284,8 +282,8 @@ class EventTimeTests(TestCase):
 
     def test_saved_manual_times_always_have_zero_seconds(self):
         response = self.client.post(self.edit_url, {
-            "starts_at": "2026-08-13T10:30:47.123456",
-            "ends_at": "2026-08-13T11:45:59.654321",
+            "starts_at": "2026-08-17T10:30:47.123456",
+            "ends_at": "2026-08-17T11:45:59.654321",
         })
         self.assertRedirects(response, self.edit_url)
         self.event.refresh_from_db()
@@ -312,7 +310,7 @@ class EventTimeTests(TestCase):
         original_start, original_end = self.event.starts_at, self.event.ends_at
         self.client.post(self.edit_url, self.manual_data)
         self.client.post(self.edit_url, {
-            "starts_at": "2026-08-14T09:00", "ends_at": "2026-08-14T10:00"
+            "starts_at": "2026-08-18T09:00", "ends_at": "2026-08-18T10:00"
         })
         self.event.refresh_from_db()
         self.assertEqual(self.event.source_starts_at, original_start)
@@ -341,7 +339,7 @@ class EventTimeTests(TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertTrue(response.context["form"].errors)
                 self.event.refresh_from_db()
-                self.assertEqual(self.event.starts_at, NOW + timedelta(days=1, hours=1))
+                self.assertEqual(self.event.starts_at, NOW + timedelta(days=5, hours=1))
                 self.assertIsNone(self.event.source_starts_at)
                 self.assertFalse(EventTimeOverride.objects.exists())
 
@@ -457,8 +455,8 @@ class EventTimeTests(TestCase):
         self.client.post(self.edit_url, self.manual_data)
         CalendarEvent.objects.create(
             calendar=self.calendar, external_uid="game-2", title="Next game",
-            starts_at=NOW + timedelta(days=1, hours=3),
-            ends_at=NOW + timedelta(days=1, hours=4),
+            starts_at=NOW + timedelta(days=5, hours=3),
+            ends_at=NOW + timedelta(days=5, hours=4),
             event_type=CalendarEvent.EventType.GAME,
         )
         response = self.client.get(reverse("home"), {"view": "all", "scope": "all"})
@@ -476,8 +474,8 @@ class EventTimeTests(TestCase):
         self.event.save()
         following = CalendarEvent.objects.create(
             calendar=self.calendar, external_uid="game-2", title="Next game",
-            starts_at=NOW + timedelta(days=1, hours=3),
-            ends_at=NOW + timedelta(days=1, hours=4),
+            starts_at=NOW + timedelta(days=5, hours=3),
+            ends_at=NOW + timedelta(days=5, hours=4),
             event_type=CalendarEvent.EventType.GAME, location="Second venue",
         )
 
@@ -495,11 +493,11 @@ class EventTimeTests(TestCase):
         self.client.post(self.edit_url, self.manual_data)
         assert_gap(15, "5 min short", tight=True)
         self.client.post(self.edit_url, {
-            **self.manual_data, "ends_at": "2026-08-13T11:15",
+            **self.manual_data, "ends_at": "2026-08-17T11:15",
         })
         assert_gap(45, "25 min buffer")
         self.client.post(reverse("event_edit_times", kwargs={"pk": following.pk}), {
-            "starts_at": "2026-08-13T12:30", "ends_at": "2026-08-13T13:30",
+            "starts_at": "2026-08-17T12:30", "ends_at": "2026-08-17T13:30",
         })
         assert_gap(75, "55 min buffer")
         self.client.post(reverse("event_reset_times", kwargs={"pk": self.event.pk}))
@@ -509,12 +507,12 @@ class EventTimeTests(TestCase):
     def test_manual_time_reorders_games_and_recalculates_gap(self, _now):
         following = CalendarEvent.objects.create(
             calendar=self.calendar, external_uid="game-2", title="Next game",
-            starts_at=NOW + timedelta(days=1, hours=3),
-            ends_at=NOW + timedelta(days=1, hours=4),
+            starts_at=NOW + timedelta(days=5, hours=3),
+            ends_at=NOW + timedelta(days=5, hours=4),
             event_type=CalendarEvent.EventType.GAME,
         )
         self.client.post(reverse("event_edit_times", kwargs={"pk": following.pk}), {
-            "starts_at": "2026-08-13T09:00", "ends_at": "2026-08-13T09:30",
+            "starts_at": "2026-08-17T09:00", "ends_at": "2026-08-17T09:30",
         })
         response = self.client.get(reverse("home"), {"view": "all", "scope": "all"})
         first, second = response.context["events"]

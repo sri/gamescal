@@ -1,0 +1,123 @@
+{% load calendar_tags %}
+<div class="d-none d-md-block table-responsive event-table-wrap">
+  <table class="table table-hover align-middle mb-0 event-table">
+    <thead>
+      <tr>
+        <th scope="col">Date</th>
+        <th scope="col">Time</th>
+        <th scope="col">Event</th>
+        <th scope="col">Location</th>
+        <th scope="col">Calendar</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for event in events %}
+        {% with local_start=event.starts_at|in_timezone:event.calendar.timezone destination=event.address|default:event.location %}
+          <tr class="schedule-event-{{ event.event_type }} {% if event.status == 'cancelled' %}event-cancelled {% endif %}{% if not event.calendar.is_mine %}event-external-calendar{% elif event.location %}event-location-colored{% endif %}"{% if event.calendar.is_mine and event.location %} style="--location-hue: {{ event.location|location_hue }};"{% endif %}>
+            <td class="event-date">
+              <span class="event-month">{{ local_start|date:"M" }}</span>
+              <span class="event-day">{{ local_start|date:"j" }}</span>
+              <span class="event-weekday">{{ local_start|date:"D" }}</span>
+            </td>
+            <td class="text-nowrap">
+              <a class="event-time-link" href="{% url 'event_edit_times' event.pk %}" title="Edit event" aria-label="Edit event {{ event.title }}">{% if event.is_all_day %}<span class="text-body-secondary">All day</span>{% else %}{{ local_start|time:"g:i A" }}{% endif %}</a>
+              {% include 'pages/_manual_time_marker.html' %}
+            </td>
+            <td class="event-title-cell">
+              <div class="fw-semibold">
+                {% if event.event_url %}<a href="{{ event.event_url }}" target="_blank" rel="noopener noreferrer">{{ event.title }}</a>{% else %}{{ event.title }}{% endif %}
+              </div>
+              <span class="badge event-type-{{ event.event_type }} mt-1">{{ event.get_event_type_display }}</span>
+              {% if event.calendar.is_mine %}<span class="badge text-bg-primary mt-1">Mine</span>{% endif %}
+              {% if event.status == 'cancelled' %}<span class="badge text-bg-danger mt-1">{{ event.get_status_display }}</span>{% endif %}
+              {% if event.schedule_conflict %}
+                <div class="schedule-conflict mt-2" title="{{ event.schedule_conflict_details }}">
+                  <span class="badge text-bg-danger">⚠ Schedule conflict</span>
+                  <span class="schedule-conflict-details">{{ event.schedule_conflict_details }}</span>
+                </div>
+              {% endif %}
+              {% if event.game_gap_after %}
+                <span class="game-gap-badge {% if event.game_travel_tight %}game-gap-badge-tight{% endif %}">
+                  <span>⏱ {{ event.game_gap_after }} between games</span>
+                  {% if event.game_drive_after %}<span class="game-gap-detail">🚗 ~{{ event.game_drive_after }} drive{% if event.game_drive_distance_after %} ({{ event.game_drive_distance_after }}){% endif %} · {{ event.game_buffer_after }}</span>{% endif %}
+                </span>
+              {% endif %}
+            </td>
+            <td>
+              {% if event.location %}
+                <a class="map-link location-chip" href="{{ destination|google_maps_directions:event.directions_origin }}" target="_blank" rel="noopener noreferrer" title="{% if event.directions_origin %}Directions from the previous game in Google Maps{% else %}Get directions in Google Maps{% endif %}">
+                  <span class="location-color-dot" aria-hidden="true"></span>{% if event.directions_origin %}<span class="visually-hidden">Directions from the previous game to </span>{% endif %}{{ event.location }} <span aria-hidden="true">↗</span>
+                </a>
+              {% else %}
+                <span class="text-body-secondary">—</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="calendar-name-actions">
+                {% if event.calendar.website_url or event.calendar.cal_url %}<a class="calendar-label" href="{{ event.calendar.website_url|default:event.calendar.cal_url }}" target="_blank" rel="noopener noreferrer" title="Open {{ event.calendar.name }} calendar">{{ event.calendar.name }}</a>{% else %}<span class="calendar-label">{{ event.calendar.name }}</span>{% endif %}
+                {% include 'pages/_followup_game_button.html' %}
+              </div>
+            </td>
+          </tr>
+        {% endwith %}
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="mobile-event-list d-md-none">
+  {% for event in events %}
+    {% with local_start=event.starts_at|in_timezone:event.calendar.timezone destination=event.address|default:event.location %}
+      <article class="mobile-event-card schedule-event-{{ event.event_type }} {% if event.status == 'cancelled' %}mobile-event-cancelled {% endif %}{% if not event.calendar.is_mine %}mobile-event-external-calendar {% elif event.location %}mobile-event-location-colored {% endif %}{% if event.game_gap_after %}mobile-event-has-gap{% endif %}"{% if event.calendar.is_mine and event.location %} style="--location-hue: {{ event.location|location_hue }};"{% endif %}>
+        <header class="mobile-event-header">
+          <div class="mobile-event-when">
+            <div class="mobile-event-date">
+              <span>{{ local_start|date:"M" }}</span>
+              <strong>{{ local_start|date:"j" }}</strong>
+            </div>
+            <div class="mobile-event-time">
+              <span>{{ local_start|date:"D" }}</span>
+              <strong><a class="event-time-link" href="{% url 'event_edit_times' event.pk %}" title="Edit event" aria-label="Edit event {{ event.title }}">{% if event.is_all_day %}All day{% else %}{{ local_start|time:"g:i A" }}{% endif %}</a> {% include 'pages/_manual_time_marker.html' %}</strong>
+            </div>
+          </div>
+          <div class="calendar-name-actions mobile-calendar-actions">
+            {% if event.calendar.website_url or event.calendar.cal_url %}<a class="calendar-label mobile-calendar-label" href="{{ event.calendar.website_url|default:event.calendar.cal_url }}" target="_blank" rel="noopener noreferrer" title="Open {{ event.calendar.name }} calendar">{{ event.calendar.name|truncatechars:10 }}</a>{% else %}<span class="calendar-label mobile-calendar-label" title="{{ event.calendar.name }}">{{ event.calendar.name|truncatechars:10 }}</span>{% endif %}
+            {% include 'pages/_followup_game_button.html' %}
+          </div>
+        </header>
+
+        <div class="mobile-event-body">
+          <h3 class="mobile-event-title">
+            {% if event.event_url %}<a href="{{ event.event_url }}" target="_blank" rel="noopener noreferrer">{{ event.title }}</a>{% else %}{{ event.title }}{% endif %}
+          </h3>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="badge event-type-{{ event.event_type }}">{{ event.get_event_type_display }}</span>
+            {% if event.calendar.is_mine %}<span class="badge text-bg-primary">Mine</span>{% endif %}
+            {% if event.status == 'cancelled' %}<span class="badge text-bg-danger">{{ event.get_status_display }}</span>{% endif %}
+          </div>
+          {% if event.schedule_conflict %}
+            <div class="schedule-conflict mt-2" title="{{ event.schedule_conflict_details }}">
+              <span class="badge text-bg-danger">⚠ Schedule conflict</span>
+              <span class="schedule-conflict-details">{{ event.schedule_conflict_details }}</span>
+            </div>
+          {% endif %}
+        </div>
+
+        {% if event.location %}
+          <a class="mobile-location-link" href="{{ destination|google_maps_directions:event.directions_origin }}" target="_blank" rel="noopener noreferrer" title="{% if event.directions_origin %}Directions from the previous game in Google Maps{% else %}Get directions in Google Maps{% endif %}">
+            <span class="location-color-dot" aria-hidden="true"></span>
+            <span class="mobile-location-text">{% if event.directions_origin %}<span class="visually-hidden">Directions from the previous game to </span>{% endif %}{{ event.location }}</span>
+            <span class="mobile-location-arrow" aria-hidden="true">↗</span>
+          </a>
+        {% endif %}
+
+        {% if event.game_gap_after %}
+          <div class="mobile-game-gap {% if event.game_travel_tight %}mobile-game-gap-tight{% endif %}">
+            <span>⏱ {{ event.game_gap_after }} between games</span>
+            {% if event.game_drive_after %}<span class="mobile-game-gap-detail">🚗 ~{{ event.game_drive_after }} drive{% if event.game_drive_distance_after %} ({{ event.game_drive_distance_after }}){% endif %} · {{ event.game_buffer_after }}</span>{% endif %}
+          </div>
+        {% endif %}
+      </article>
+    {% endwith %}
+  {% endfor %}
+</div>

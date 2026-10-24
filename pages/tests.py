@@ -101,8 +101,8 @@ class PageTests(TestCase):
                 calendar=calendar,
                 external_uid=f"game-food-{index}",
                 title=f"Falcons game {index}",
-                starts_at=TEST_NOW + timedelta(days=1, hours=index),
-                ends_at=TEST_NOW + timedelta(days=1, hours=index + 1),
+                starts_at=TEST_NOW + timedelta(days=3, hours=index),
+                ends_at=TEST_NOW + timedelta(days=3, hours=index + 1),
                 event_type=CalendarEvent.EventType.GAME,
                 location="Central Stadium",
                 address="123 Main St, Phoenix, AZ",
@@ -111,8 +111,8 @@ class PageTests(TestCase):
             calendar=calendar,
             external_uid="tbd-food",
             title="Game with unknown location",
-            starts_at=TEST_NOW + timedelta(days=1, hours=3),
-            ends_at=TEST_NOW + timedelta(days=1, hours=4),
+            starts_at=TEST_NOW + timedelta(days=3, hours=3),
+            ends_at=TEST_NOW + timedelta(days=3, hours=4),
             event_type=CalendarEvent.EventType.GAME,
             location="TBD",
             address="TBD",
@@ -121,16 +121,16 @@ class PageTests(TestCase):
             calendar=calendar,
             external_uid="practice-food",
             title="Falcons practice",
-            starts_at=TEST_NOW + timedelta(days=2),
-            ends_at=TEST_NOW + timedelta(days=2, hours=1),
+            starts_at=TEST_NOW + timedelta(days=5),
+            ends_at=TEST_NOW + timedelta(days=5, hours=1),
             event_type=CalendarEvent.EventType.PRACTICE,
             location="Practice Gym",
             address="456 Oak Ave, Phoenix, AZ",
         )
 
-        games = self.client.get(reverse("home"), {"view": "games"})
+        games = self.client.get(reverse("home"))
 
-        self.assertEqual(len(games.context["food_locations"]), 1)
+        self.assertEqual(len(games.context["food_locations"]), 2)
         self.assertFalse(
             any(
                 location["address"].casefold() == "tbd"
@@ -153,18 +153,11 @@ class PageTests(TestCase):
             games,
             "https://www.google.com/maps/dir/?api=1&amp;origin=123+Main+St%2C+Phoenix%2C+AZ&amp;destination=Chipotle+Mexican+Grill+near+123+Main+St%2C+Phoenix%2C+AZ",
         )
-        self.assertContains(games, ">Yelp</a>", count=4)
-        self.assertContains(games, ">GMaps</a>", count=4)
+        self.assertContains(games, ">Yelp</a>", count=8)
+        self.assertContains(games, ">GMaps</a>", count=8)
 
-        practices = self.client.get(reverse("home"), {"view": "practices"})
-        self.assertEqual(len(practices.context["food_locations"]), 1)
-        self.assertContains(practices, "456 Oak Ave, Phoenix, AZ")
-        self.assertNotContains(practices, "123 Main St, Phoenix, AZ")
-        self.assertContains(practices, 'id="food-nearby-heading"')
-
-        all_events = self.client.get(reverse("home"), {"view": "all"})
-        self.assertEqual(all_events.context["food_locations"], [])
-        self.assertNotContains(all_events, 'id="food-nearby-heading"')
+        self.assertContains(games, "456 Oak Ave, Phoenix, AZ")
+        self.assertContains(games, "123 Main St, Phoenix, AZ")
 
     @override_settings(ENABLE_API_LOG_VIEW=False, ENABLE_DEMO_TOOLS=False)
     def test_debug_query_enables_developer_tools(self):
@@ -318,8 +311,8 @@ class PageTests(TestCase):
                 calendar=calendar,
                 external_uid=title,
                 title=title,
-                starts_at=timezone.now() + timedelta(days=1),
-                ends_at=timezone.now() + timedelta(days=1, hours=1),
+                starts_at=timezone.now() + timedelta(days=3),
+                ends_at=timezone.now() + timedelta(days=3, hours=1),
                 event_type=CalendarEvent.EventType.GAME,
                 is_mine=calendar.is_mine,
             )
@@ -335,7 +328,7 @@ class PageTests(TestCase):
         self.assertNotContains(response, "Hidden game")
 
     @patch("pages.views.timezone.now", return_value=TEST_NOW)
-    def test_all_event_views_can_filter_by_calendar_ownership(self, _mocked_now):
+    def test_home_shows_all_active_calendars_without_filters(self, _mocked_now):
         mine = Calendar.objects.create(
             name="Coach schedule",
             cal_url="https://example.com/coach.ics",
@@ -345,63 +338,31 @@ class PageTests(TestCase):
             name="League schedule",
             cal_url="https://example.com/league.ics",
         )
-        # Ownership filtering follows the calendar, not a team-name match stored
-        # on an individual event.
-        for calendar, title, event_type, is_mine in (
-            (mine, "My game", CalendarEvent.EventType.GAME, False),
-            (other, "Other game", CalendarEvent.EventType.GAME, True),
-            (mine, "My practice", CalendarEvent.EventType.PRACTICE, False),
-            (other, "Other practice", CalendarEvent.EventType.PRACTICE, True),
+        for calendar, title, event_type in (
+            (mine, "My game", CalendarEvent.EventType.GAME),
+            (other, "Other game", CalendarEvent.EventType.GAME),
+            (mine, "My practice", CalendarEvent.EventType.PRACTICE),
+            (other, "Other practice", CalendarEvent.EventType.PRACTICE),
         ):
             CalendarEvent.objects.create(
                 calendar=calendar,
                 external_uid=title,
                 title=title,
-                starts_at=TEST_NOW + timedelta(days=1),
-                ends_at=TEST_NOW + timedelta(days=1, hours=1),
+                starts_at=TEST_NOW + timedelta(days=5),
+                ends_at=TEST_NOW + timedelta(days=5, hours=1),
                 event_type=event_type,
-                is_mine=is_mine,
             )
 
-        mine_only = self.client.get(reverse("home"), {"view": "games"})
-        self.assertEqual(mine_only.context["event_scope"], "mine")
-        self.assertContains(mine_only, "My game")
-        self.assertNotContains(mine_only, "Other game")
-        self.assertContains(mine_only, 'aria-label="Calendar ownership"')
-        self.assertNotContains(mine_only, "Apply Calendars")
-        self.assertNotContains(mine_only, "Select All")
-        scope_filters = mine_only.content.decode().split(
-            'aria-label="Calendar ownership"', 1
-        )[1][:600]
-        self.assertLess(scope_filters.index(">Mine</a>"), scope_filters.index(">All</a>"))
-        self.assertLess(scope_filters.index(">All</a>"), scope_filters.index(">Others</a>"))
-
-        others_only = self.client.get(
-            reverse("home"), {"view": "all", "scope": "others"}
+        response = self.client.get(
+            reverse("home"), {"view": "games", "scope": "mine", "type": "games"}
         )
-        self.assertNotContains(others_only, "My game")
-        self.assertContains(others_only, "Other game")
 
-        all_games = self.client.get(
-            reverse("home"), {"view": "games", "scope": "all"}
-        )
-        self.assertContains(all_games, "My game")
-        self.assertContains(all_games, "Other game")
-        self.assertContains(all_games, '<tr class="event-external-calendar">')
-        self.assertContains(all_games, "mobile-event-external-calendar")
-
-        mine_practices = self.client.get(
-            reverse("home"), {"view": "practices", "scope": "mine"}
-        )
-        self.assertContains(mine_practices, "My practice")
-        self.assertNotContains(mine_practices, "Other practice")
-        self.assertContains(mine_practices, 'aria-label="Calendar ownership"')
-
-        other_practices = self.client.get(
-            reverse("home"), {"view": "practices", "scope": "others"}
-        )
-        self.assertNotContains(other_practices, "My practice")
-        self.assertContains(other_practices, "Other practice")
+        for title in ("My game", "Other game", "My practice", "Other practice"):
+            self.assertContains(response, title)
+        self.assertNotContains(response, 'aria-label="Event views"')
+        self.assertNotContains(response, 'aria-label="Calendar ownership"')
+        self.assertNotContains(response, 'id="all-event-type"')
+        self.assertContains(response, "mobile-event-external-calendar")
 
     @patch("pages.views.timezone.now", return_value=TEST_NOW)
     def test_event_calendar_link_falls_back_to_feed_url(self, _mocked_now):
@@ -414,8 +375,8 @@ class PageTests(TestCase):
             calendar=calendar,
             external_uid="fallback-link",
             title="Fallback link game",
-            starts_at=timezone.now() + timedelta(days=1),
-            ends_at=timezone.now() + timedelta(days=1, minutes=50),
+            starts_at=timezone.now() + timedelta(days=3),
+            ends_at=timezone.now() + timedelta(days=3, minutes=50),
             event_type=CalendarEvent.EventType.GAME,
             is_mine=True,
         )
@@ -459,23 +420,17 @@ class PageTests(TestCase):
         self.assertContains(before_final_ends, "Sunday game")
 
         mocked_now.return_value = datetime(2026, 8, 15, 13, 10, tzinfo=arizona)
-        after_final_ends = self.client.get(reverse("home"), {"view": "games"})
-        all_events = self.client.get(reverse("home"), {"view": "all"})
-        default_view = self.client.get(reverse("home"))
+        after_final_ends = self.client.get(reverse("home"))
 
         self.assertNotContains(after_final_ends, "Saturday morning game")
         self.assertNotContains(after_final_ends, "Saturday final game")
         self.assertContains(after_final_ends, "Sunday game")
-        self.assertContains(all_events, "Saturday morning game")
-        self.assertContains(all_events, "Saturday final game")
-        self.assertContains(all_events, "Sunday game")
-        self.assertEqual(default_view.context["event_view"], "games")
 
         mocked_now.return_value = datetime(2026, 8, 16, 9, 50, tzinfo=arizona)
         after_sunday_game = self.client.get(reverse("home"))
 
         self.assertNotContains(after_sunday_game, "Sunday game")
-        self.assertEqual(after_sunday_game.context["event_view"], "practices")
+        self.assertContains(after_sunday_game, "No games this weekend.")
 
     @patch("pages.views.timezone.now", return_value=TEST_NOW)
     def test_midnight_tbd_games_are_hidden_as_placeholders(self, _mocked_now):
@@ -489,17 +444,17 @@ class PageTests(TestCase):
         for title, starts_at, location in (
             (
                 "Midnight TBD placeholder",
-                datetime(2026, 8, 13, 0, 0, tzinfo=arizona),
+                datetime(2026, 8, 15, 0, 0, tzinfo=arizona),
                 "TBD",
             ),
             (
                 "Real midnight game",
-                datetime(2026, 8, 14, 0, 0, tzinfo=arizona),
+                datetime(2026, 8, 16, 0, 0, tzinfo=arizona),
                 "Central Stadium",
             ),
             (
                 "Noon TBD game",
-                datetime(2026, 8, 14, 12, 0, tzinfo=arizona),
+                datetime(2026, 8, 16, 12, 0, tzinfo=arizona),
                 "TBD",
             ),
         ):
@@ -514,16 +469,14 @@ class PageTests(TestCase):
                 address=location,
             )
 
-        games = self.client.get(reverse("home"), {"view": "games"})
-        all_events = self.client.get(reverse("home"), {"view": "all"})
+        response = self.client.get(reverse("home"))
 
-        self.assertNotContains(games, "Midnight TBD placeholder")
-        self.assertContains(all_events, "Midnight TBD placeholder")
-        self.assertContains(games, "Real midnight game")
-        self.assertContains(games, "Noon TBD game")
+        self.assertNotContains(response, "Midnight TBD placeholder")
+        self.assertContains(response, "Real midnight game")
+        self.assertContains(response, "Noon TBD game")
 
     @patch("pages.views.timezone.now")
-    def test_practices_roll_to_next_week_on_friday(self, mocked_now):
+    def test_only_next_week_practices_are_shown(self, mocked_now):
         arizona = ZoneInfo("America/Phoenix")
         mocked_now.return_value = datetime(2026, 8, 13, 20, 0, tzinfo=arizona)
         calendar = Calendar.objects.create(
@@ -558,9 +511,9 @@ class PageTests(TestCase):
         mocked_now.return_value = datetime(2026, 8, 13, 20, 0, tzinfo=arizona)
         thursday = self.client.get(reverse("home"), {"view": "practices"})
 
-        self.assertContains(thursday, "Current Thursday practice")
-        self.assertNotContains(thursday, "Next Tuesday practice")
-        self.assertNotContains(thursday, "Next Thursday practice")
+        self.assertNotContains(thursday, "Current Thursday practice")
+        self.assertContains(thursday, "Next Tuesday practice")
+        self.assertContains(thursday, "Next Thursday practice")
 
         mocked_now.return_value = datetime(2026, 8, 14, 9, 0, tzinfo=arizona)
         friday = self.client.get(reverse("home"), {"view": "practices"})
@@ -569,11 +522,8 @@ class PageTests(TestCase):
         self.assertContains(friday, "Next Tuesday practice")
         self.assertContains(friday, "Next Thursday practice")
 
-    @patch("pages.views.timezone.now")
-    def test_home_event_type_views_and_week_filter(self, mocked_now):
-        mocked_now.return_value = datetime(
-            2026, 8, 12, 16, 0, tzinfo=dt_timezone.utc
-        )
+    @patch("pages.views.timezone.now", return_value=TEST_NOW)
+    def test_home_shows_weekend_games_then_next_week_schedule(self, _mocked_now):
         calendar = Calendar.objects.create(
             name="League",
             cal_url="https://example.com/views.ics",
@@ -583,17 +533,12 @@ class PageTests(TestCase):
         arizona = ZoneInfo("America/Phoenix")
         for title, starts_at, event_type in (
             (
-                "This week game",
-                datetime(2026, 8, 12, 10, 0, tzinfo=arizona),
+                "Weekend game",
+                datetime(2026, 8, 15, 10, 0, tzinfo=arizona),
                 CalendarEvent.EventType.GAME,
             ),
             (
-                "This week practice",
-                datetime(2026, 8, 13, 10, 0, tzinfo=arizona),
-                CalendarEvent.EventType.PRACTICE,
-            ),
-            (
-                "Sunday practice",
+                "Weekend practice",
                 datetime(2026, 8, 16, 10, 0, tzinfo=arizona),
                 CalendarEvent.EventType.PRACTICE,
             ),
@@ -608,7 +553,7 @@ class PageTests(TestCase):
                 CalendarEvent.EventType.PRACTICE,
             ),
             (
-                "Future team meeting",
+                "Next week meeting",
                 datetime(2026, 8, 19, 10, 0, tzinfo=arizona),
                 CalendarEvent.EventType.OTHER,
             ),
@@ -620,58 +565,26 @@ class PageTests(TestCase):
                 starts_at=starts_at,
                 ends_at=starts_at + timedelta(hours=1),
                 event_type=event_type,
-                is_mine=True,
             )
 
-        all_events = self.client.get(reverse("home"), {"view": "all"})
-        self.assertEqual(all_events.context["event_view"], "all")
-        self.assertContains(all_events, "This week game")
-        self.assertContains(all_events, "This week practice")
-        self.assertContains(all_events, "Sunday practice")
-        self.assertContains(all_events, "Next week game")
-        self.assertContains(all_events, "Next week practice")
-        self.assertContains(all_events, "Future team meeting")
-        self.assertContains(all_events, 'aria-label="Event views"')
-        self.assertContains(all_events, 'id="all-event-type"')
-        self.assertEqual(all_events.context["all_event_type"], "all")
-        self.assertNotContains(all_events, "This week</a>")
-        self.assertNotContains(all_events, "All upcoming")
-        self.assertNotContains(all_events, "Weekend only")
+        response = self.client.get(reverse("home"))
+        html = response.content.decode()
 
-        games = self.client.get(reverse("home"))
-        self.assertEqual(games.context["event_view"], "games")
-        self.assertContains(games, "This week game")
-        self.assertNotContains(games, "This week practice")
-        self.assertNotContains(games, "Next week game")
-        self.assertNotContains(games, 'id="all-event-type"')
-
-        practices = self.client.get(reverse("home"), {"view": "practices"})
-        self.assertContains(practices, "This week practice")
-        self.assertContains(practices, "Sunday practice")
-        self.assertNotContains(practices, "This week game")
-        self.assertNotContains(practices, "Next week practice")
-        self.assertNotContains(practices, 'id="all-event-type"')
-
-        all_games = self.client.get(
-            reverse("home"), {"view": "all", "type": "games"}
-        )
-        self.assertEqual(all_games.context["all_event_type"], "games")
-        self.assertContains(all_games, "This week game")
-        self.assertContains(all_games, "Next week game")
-        self.assertNotContains(all_games, "This week practice")
-        self.assertNotContains(all_games, "Future team meeting")
-
-        all_practices = self.client.get(
-            reverse("home"), {"view": "all", "type": "practices"}
-        )
-        self.assertEqual(all_practices.context["all_event_type"], "practices")
-        self.assertContains(all_practices, "This week practice")
-        self.assertContains(all_practices, "Next week practice")
-        self.assertNotContains(all_practices, "This week game")
-        self.assertNotContains(all_practices, "Future team meeting")
+        self.assertContains(response, "This Weekend")
+        self.assertContains(response, "Aug 15–Aug 16")
+        self.assertContains(response, "Next Week")
+        self.assertContains(response, "Aug 17–Aug 23")
+        self.assertLess(html.index("This Weekend"), html.index("Next Week"))
+        self.assertContains(response, "Weekend game")
+        self.assertNotContains(response, "Weekend practice")
+        self.assertContains(response, "Next week game")
+        self.assertContains(response, "Next week practice")
+        self.assertNotContains(response, "Next week meeting")
+        self.assertContains(response, "schedule-event-game", count=4)
+        self.assertContains(response, "schedule-event-practice", count=2)
 
     @patch("pages.views.timezone.now", return_value=TEST_NOW)
-    def test_home_defaults_to_practices_when_week_has_no_games(self, _mocked_now):
+    def test_home_shows_empty_weekend_before_next_week(self, _mocked_now):
         calendar = Calendar.objects.create(
             name="Practice calendar",
             cal_url="https://example.com/practice-default.ics",
@@ -696,9 +609,9 @@ class PageTests(TestCase):
 
         response = self.client.get(reverse("home"))
 
-        self.assertEqual(response.context["event_view"], "practices")
-        self.assertContains(response, "Available practice")
-        self.assertNotContains(response, "Later game")
+        self.assertContains(response, "No games this weekend.")
+        self.assertNotContains(response, "Available practice")
+        self.assertContains(response, "Later game")
 
     @patch("pages.views.timezone.now", return_value=TEST_NOW)
     @patch("pages.views.get_route_estimate")
@@ -716,7 +629,7 @@ class PageTests(TestCase):
         calendar = Calendar.objects.create(
             name="Tournament", cal_url="https://example.com/tournament.ics"
         )
-        first_start = (timezone.now() + timedelta(days=1)).astimezone(
+        first_start = (timezone.now() + timedelta(days=3)).astimezone(
             ZoneInfo("America/Phoenix")
         ).replace(hour=12, minute=0, second=0, microsecond=0)
         starts = (
@@ -770,7 +683,7 @@ class PageTests(TestCase):
             cal_url="https://example.com/league-conflict.ics",
             team_aliases="Phoenix Falcons\nFalcons",
         )
-        first_start = TEST_NOW + timedelta(days=1)
+        first_start = TEST_NOW + timedelta(days=3)
         for calendar, starts_at, location in (
             (coach, first_start, "Central Stadium"),
             (league, first_start + timedelta(hours=3), "North Field"),
@@ -808,7 +721,7 @@ class PageTests(TestCase):
         calendar = Calendar.objects.create(
             name="Two-day event", cal_url="https://example.com/two-days.ics"
         )
-        first_start = timezone.now() + timedelta(days=1)
+        first_start = timezone.now() + timedelta(days=3)
         for index, (starts_at, location) in enumerate(
             (
                 (first_start, "Central Stadium"),
@@ -842,7 +755,7 @@ class PageTests(TestCase):
         calendar = Calendar.objects.create(
             name="Travel schedule", cal_url="https://example.com/travel.ics"
         )
-        start = (timezone.now() + timedelta(days=1)).astimezone(
+        start = (timezone.now() + timedelta(days=3)).astimezone(
             ZoneInfo("America/Phoenix")
         ).replace(hour=12, minute=0, second=0, microsecond=0)
         event_specs = (
@@ -872,7 +785,7 @@ class PageTests(TestCase):
         self.assertEqual(
             events["Away game"].directions_origin, " central   stadium "
         )
-        self.assertEqual(events["Practice stop"].directions_origin, "")
+        self.assertNotIn("Practice stop", events)
         self.assertContains(response, "Directions from the previous game")
 
     def test_about_page_offers_persistent_theme_choices(self):
