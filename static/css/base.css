@@ -465,6 +465,18 @@ html[data-theme]:not([data-theme="default"]) .event-type-practice {
   background: color-mix(in srgb, var(--theme-accent) 70%, white);
 }
 
+html[data-theme]:not([data-theme="default"]) tr.schedule-event-practice {
+  --bs-table-color: var(--theme-accent-text);
+  --bs-table-bg: color-mix(in srgb, var(--theme-accent) 70%, white);
+  --bs-table-hover-color: var(--theme-accent-text);
+  --bs-table-hover-bg: color-mix(in srgb, var(--theme-accent) 65%, white);
+}
+
+html[data-theme]:not([data-theme="default"]) .mobile-event-card.schedule-event-practice {
+  color: var(--theme-accent-text);
+  background: color-mix(in srgb, var(--theme-accent) 70%, white);
+}
+
 html[data-theme]:not([data-theme="default"]) .event-type-other {
   color: var(--bs-body-color);
   background: var(--theme-surface);
@@ -1303,6 +1315,18 @@ a {
 }
 
 .event-type-practice {
+  color: #052c65;
+  background: color-mix(in srgb, var(--bs-primary) 70%, white);
+}
+
+tr.schedule-event-practice {
+  --bs-table-color: #052c65;
+  --bs-table-bg: color-mix(in srgb, var(--bs-primary) 70%, white);
+  --bs-table-hover-color: #052c65;
+  --bs-table-hover-bg: color-mix(in srgb, var(--bs-primary) 65%, white);
+}
+
+.mobile-event-card.schedule-event-practice {
   color: #052c65;
   background: color-mix(in srgb, var(--bs-primary) 70%, white);
 }

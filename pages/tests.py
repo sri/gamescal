@@ -582,6 +582,9 @@ class PageTests(TestCase):
         self.assertNotContains(response, "Next week meeting")
         self.assertContains(response, "schedule-event-game", count=4)
         self.assertContains(response, "schedule-event-practice", count=2)
+        schedule_html = html.split('<section class="my-4"', 1)[0]
+        self.assertNotIn("event-type-practice", schedule_html)
+        self.assertNotIn(">Mine</span>", schedule_html)
 
     @patch("pages.views.timezone.now", return_value=TEST_NOW)
     def test_home_shows_empty_weekend_before_next_week(self, _mocked_now):
