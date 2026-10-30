@@ -401,25 +401,27 @@ class HomePageView(TemplateView):
         ]
         weekend_events = _hide_finished_game_days(weekend_events, now)
 
-        next_week_events = list(
-            displayed_events.filter(
-                event_type__in={
-                    CalendarEvent.EventType.GAME,
-                    CalendarEvent.EventType.PRACTICE,
-                    CalendarEvent.EventType.TOURNAMENT,
-                },
-                starts_at__gte=next_week_start,
-                starts_at__lt=next_week_end,
-            ).order_by("starts_at", "title")[:2000]
-        )
-        next_week_events = [
-            event
-            for event in next_week_events
-            if not (
-                event.event_type in GAME_EVENT_TYPES
-                and _is_placeholder_game(event)
+        next_week_events = []
+        if not weekend_events:
+            next_week_events = list(
+                displayed_events.filter(
+                    event_type__in={
+                        CalendarEvent.EventType.GAME,
+                        CalendarEvent.EventType.PRACTICE,
+                        CalendarEvent.EventType.TOURNAMENT,
+                    },
+                    starts_at__gte=next_week_start,
+                    starts_at__lt=next_week_end,
+                ).order_by("starts_at", "title")[:2000]
             )
-        ]
+            next_week_events = [
+                event
+                for event in next_week_events
+                if not (
+                    event.event_type in GAME_EVENT_TYPES
+                    and _is_placeholder_game(event)
+                )
+            ]
 
         events = weekend_events + next_week_events
         events = _annotate_schedule_conflicts(events)
@@ -430,7 +432,7 @@ class HomePageView(TemplateView):
         weekend_count = len(weekend_events)
         weekend_events = events[:weekend_count]
         next_week_events = events[weekend_count:]
-        context["schedule_sections"] = (
+        schedule_sections = [
             {
                 "slug": "this-weekend",
                 "title": "This Weekend",
@@ -438,16 +440,20 @@ class HomePageView(TemplateView):
                 "ends_on": weekend_start_date + timedelta(days=1),
                 "events": weekend_events,
                 "empty_message": "No games this weekend.",
-            },
-            {
-                "slug": "next-week",
-                "title": "Next Week",
-                "starts_on": next_week_start.date(),
-                "ends_on": (next_week_end - timedelta(days=1)).date(),
-                "events": next_week_events,
-                "empty_message": "No games or practices next week.",
-            },
-        )
+            }
+        ]
+        if not weekend_events:
+            schedule_sections.append(
+                {
+                    "slug": "next-week",
+                    "title": "Next Week",
+                    "starts_on": next_week_start.date(),
+                    "ends_on": (next_week_end - timedelta(days=1)).date(),
+                    "events": next_week_events,
+                    "empty_message": "No games or practices next week.",
+                }
+            )
+        context["schedule_sections"] = schedule_sections
         context["calendars"] = calendars
         context["has_refreshable_calendars"] = any(
             calendar.cal_url for calendar in calendars

@@ -90,7 +90,7 @@ class PageTests(TestCase):
         self.assertContains(response, "API Logs")
 
     @patch("pages.views.timezone.now", return_value=TEST_NOW)
-    def test_games_and_practices_show_deduplicated_food_searches(self, _mocked_now):
+    def test_displayed_schedule_shows_deduplicated_food_searches(self, _mocked_now):
         calendar = Calendar.objects.create(
             name="League",
             cal_url="https://example.com/food.ics",
@@ -130,7 +130,7 @@ class PageTests(TestCase):
 
         games = self.client.get(reverse("home"))
 
-        self.assertEqual(len(games.context["food_locations"]), 2)
+        self.assertEqual(len(games.context["food_locations"]), 1)
         self.assertFalse(
             any(
                 location["address"].casefold() == "tbd"
@@ -153,10 +153,10 @@ class PageTests(TestCase):
             games,
             "https://www.google.com/maps/dir/?api=1&amp;origin=123+Main+St%2C+Phoenix%2C+AZ&amp;destination=Chipotle+Mexican+Grill+near+123+Main+St%2C+Phoenix%2C+AZ",
         )
-        self.assertContains(games, ">Yelp</a>", count=8)
-        self.assertContains(games, ">GMaps</a>", count=8)
+        self.assertContains(games, ">Yelp</a>", count=4)
+        self.assertContains(games, ">GMaps</a>", count=4)
 
-        self.assertContains(games, "456 Oak Ave, Phoenix, AZ")
+        self.assertNotContains(games, "456 Oak Ave, Phoenix, AZ")
         self.assertContains(games, "123 Main St, Phoenix, AZ")
 
     @override_settings(ENABLE_API_LOG_VIEW=False, ENABLE_DEMO_TOOLS=False)
@@ -523,7 +523,7 @@ class PageTests(TestCase):
         self.assertContains(friday, "Next Thursday practice")
 
     @patch("pages.views.timezone.now", return_value=TEST_NOW)
-    def test_home_shows_weekend_games_then_next_week_schedule(self, _mocked_now):
+    def test_home_hides_next_week_schedule_when_weekend_has_games(self, _mocked_now):
         calendar = Calendar.objects.create(
             name="League",
             cal_url="https://example.com/views.ics",
@@ -572,16 +572,16 @@ class PageTests(TestCase):
 
         self.assertContains(response, "This Weekend")
         self.assertContains(response, "Aug 15–Aug 16")
-        self.assertContains(response, "Next Week")
-        self.assertContains(response, "Aug 17–Aug 23")
-        self.assertLess(html.index("This Weekend"), html.index("Next Week"))
+        self.assertNotContains(response, "Next Week")
+        self.assertNotContains(response, "Aug 17–Aug 23")
         self.assertContains(response, "Weekend game")
         self.assertNotContains(response, "Weekend practice")
-        self.assertContains(response, "Next week game")
-        self.assertContains(response, "Next week practice")
+        self.assertNotContains(response, "Next week game")
+        self.assertNotContains(response, "Next week practice")
         self.assertNotContains(response, "Next week meeting")
-        self.assertContains(response, "schedule-event-game", count=4)
-        self.assertContains(response, "schedule-event-practice", count=2)
+        self.assertContains(response, "schedule-event-game", count=2)
+        self.assertNotContains(response, "schedule-event-practice")
+        self.assertEqual(len(response.context["schedule_sections"]), 1)
         schedule_html = html.split('<section class="my-4"', 1)[0]
         self.assertNotIn("event-type-practice", schedule_html)
         self.assertNotIn(">Mine</span>", schedule_html)
@@ -613,8 +613,10 @@ class PageTests(TestCase):
         response = self.client.get(reverse("home"))
 
         self.assertContains(response, "No games this weekend.")
+        self.assertContains(response, "Next Week")
         self.assertNotContains(response, "Available practice")
         self.assertContains(response, "Later game")
+        self.assertEqual(len(response.context["schedule_sections"]), 2)
 
     @patch("pages.views.timezone.now", return_value=TEST_NOW)
     @patch("pages.views.get_route_estimate")
