@@ -110,6 +110,25 @@ class CalendarEvent(models.Model):
         return self.title
 
 
+class EventDeletion(models.Model):
+    """A feed event that should stay deleted when its calendar is refreshed."""
+
+    calendar = models.ForeignKey(
+        Calendar, on_delete=models.CASCADE, related_name="event_deletions"
+    )
+    external_uid = models.CharField(max_length=255)
+    recurrence_id = models.CharField(max_length=255, blank=True)
+    deleted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["calendar", "external_uid", "recurrence_id"],
+                name="unique_event_deletion",
+            )
+        ]
+
+
 class EventTimeOverride(models.Model):
     """Manual times keyed by feed identity so replacing events preserves edits."""
 

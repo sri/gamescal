@@ -5,7 +5,13 @@ from unittest.mock import patch
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from .models import Calendar, CalendarEvent, EventDetailsOverride, EventTimeOverride
+from .models import (
+    Calendar,
+    CalendarEvent,
+    EventDeletion,
+    EventDetailsOverride,
+    EventTimeOverride,
+)
 from .services import EventData, ImportResult
 from .views import _replace_calendar_events
 
@@ -86,7 +92,7 @@ class EventTimeTests(TestCase):
 
         edit_page = self.client.get(response.url)
         self.assertContains(edit_page, "This cloned game")
-        self.assertContains(edit_page, "Delete cloned game")
+        self.assertContains(edit_page, "Delete event")
         self.assertContains(edit_page, 'name="title"')
         self.assertContains(edit_page, 'name="location"')
         self.assertContains(edit_page, 'name="is_tentative"')
@@ -122,7 +128,7 @@ class EventTimeTests(TestCase):
         self.assertEqual(second_clone.status, CalendarEvent.Status.TENTATIVE)
 
     @patch("pages.views.fetch_and_parse_calendar")
-    def test_manual_followup_survives_refresh_and_can_be_deleted(self, fetch):
+    def test_manual_and_imported_events_can_be_deleted(self, fetch):
         self.client.post(reverse("event_add_followup", kwargs={"pk": self.event.pk}))
         followup = CalendarEvent.objects.get(is_manual=True)
         fetch.return_value = self.feed_result()
@@ -137,18 +143,21 @@ class EventTimeTests(TestCase):
         self.assertTrue(self.calendar.events.get(pk=followup.pk).is_manual)
 
         imported = self.calendar.events.get(is_manual=False)
-        delete_url = reverse("event_delete_manual", kwargs={"pk": followup.pk})
-        self.assertEqual(self.client.get(delete_url).status_code, 405)
-        self.assertEqual(
-            self.client.post(
-                reverse("event_delete_manual", kwargs={"pk": imported.pk})
-            ).status_code,
-            404,
-        )
-        response = self.client.post(delete_url)
-        self.assertRedirects(response, f'{reverse("home")}?view=games&scope=all')
+        followup_delete_url = reverse("event_delete", kwargs={"pk": followup.pk})
+        imported_delete_url = reverse("event_delete", kwargs={"pk": imported.pk})
+        self.assertEqual(self.client.get(followup_delete_url).status_code, 405)
+
+        response = self.client.post(followup_delete_url)
+        self.assertRedirects(response, f'{reverse("home")}?view=all&scope=all')
+        response = self.client.post(imported_delete_url)
+        self.assertRedirects(response, f'{reverse("home")}?view=all&scope=all')
         self.assertFalse(CalendarEvent.objects.filter(pk=followup.pk).exists())
-        self.assertTrue(CalendarEvent.objects.filter(pk=imported.pk).exists())
+        self.assertFalse(CalendarEvent.objects.filter(pk=imported.pk).exists())
+        self.assertEqual(EventDeletion.objects.count(), 1)
+
+        # Imported events marked as deleted do not return from the feed.
+        self.client.post(reverse("calendars_refresh_all"))
+        self.assertFalse(self.calendar.events.exists())
 
     def test_followup_can_only_be_added_to_a_game(self):
         self.event.event_type = CalendarEvent.EventType.PRACTICE

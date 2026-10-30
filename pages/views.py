@@ -30,6 +30,7 @@ from .models import (
     CalendarEvent,
     CalendarEventRule,
     CalendarVisibilityRule,
+    EventDeletion,
     EventDetailsOverride,
     EventTimeOverride,
     GeoapifyAPILog,
@@ -765,6 +766,21 @@ def _details_overrides(calendar):
     }
 
 
+def _deleted_event_identities(calendar):
+    return set(
+        calendar.event_deletions.values_list("external_uid", "recurrence_id")
+    )
+
+
+def _without_deleted_events(calendar, events):
+    deleted_identities = _deleted_event_identities(calendar)
+    return [
+        event
+        for event in events
+        if (event.external_uid, event.recurrence_id) not in deleted_identities
+    ]
+
+
 def _apply_details_override(event, override):
     if override is not None:
         event.title = override.title
@@ -790,6 +806,7 @@ def calendar_preview(request, token):
     is_replacement = preview.get("mode") == "replace"
     if is_replacement:
         calendar = get_object_or_404(Calendar, pk=preview.get("calendar_id"))
+        result.events = _without_deleted_events(calendar, result.events)
         time_overrides = _time_overrides(calendar)
         details_overrides = _details_overrides(calendar)
         for event in result.events:
@@ -865,11 +882,11 @@ def confirm_calendar(request, token):
     preview, result = _preview_from_session(request, token)
     if preview.get("mode") == "replace":
         calendar = get_object_or_404(Calendar, pk=preview.get("calendar_id"))
-        _replace_calendar_events(calendar, result)
+        imported_count = _replace_calendar_events(calendar, result)
         request.session.pop(PREVIEW_SESSION_KEY, None)
         messages.success(
             request,
-            f'Added {len(result.events)} approved events to “{calendar.name}”.',
+            f'Added {imported_count} approved events to “{calendar.name}”.',
         )
         return redirect("calendar_edit", pk=calendar.pk)
 
@@ -945,18 +962,24 @@ def add_followup_game(request, pk):
 
 
 @require_POST
-def delete_manual_event(request, pk):
-    event = get_object_or_404(CalendarEvent, pk=pk, is_manual=True)
-    identity = {
-        "calendar": event.calendar,
-        "external_uid": event.external_uid,
-        "recurrence_id": event.recurrence_id,
-    }
-    EventTimeOverride.objects.filter(**identity).delete()
-    EventDetailsOverride.objects.filter(**identity).delete()
-    event.delete()
-    messages.success(request, "Deleted the cloned game.")
-    return redirect(f'{reverse("home")}?view=games&scope=all')
+def delete_event(request, pk):
+    with transaction.atomic():
+        event = get_object_or_404(
+            CalendarEvent.objects.select_related("calendar").select_for_update(),
+            pk=pk,
+        )
+        identity = {
+            "calendar": event.calendar,
+            "external_uid": event.external_uid,
+            "recurrence_id": event.recurrence_id,
+        }
+        if not event.is_manual:
+            EventDeletion.objects.get_or_create(**identity)
+        EventTimeOverride.objects.filter(**identity).delete()
+        EventDetailsOverride.objects.filter(**identity).delete()
+        event.delete()
+    messages.success(request, "Deleted the event.")
+    return redirect(f'{reverse("home")}?view=all&scope=all')
 
 
 @require_http_methods(["GET", "POST"])
@@ -1111,6 +1134,7 @@ def _replace_calendar_events(calendar, result):
         visibility_rules = list(calendar.visibility_rules.filter(is_active=True))
         time_overrides = _time_overrides(calendar)
         details_overrides = _details_overrides(calendar)
+        events = _without_deleted_events(calendar, result.events)
         calendar.events.filter(is_manual=False).delete()
         CalendarEvent.objects.bulk_create(
             [
@@ -1126,7 +1150,7 @@ def _replace_calendar_events(calendar, result):
                         (event.external_uid, event.recurrence_id)
                     ),
                 )
-                for event in result.events
+                for event in events
             ]
         )
         calendar.timezone = result.timezone
@@ -1140,6 +1164,7 @@ def _replace_calendar_events(calendar, result):
                 "updated_at",
             ]
         )
+    return len(events)
 
 
 @require_POST
@@ -1202,9 +1227,8 @@ def refresh_all_calendars(request):
             failed_names.append(calendar.name)
             continue
 
-        _replace_calendar_events(calendar, result)
+        imported_events += _replace_calendar_events(calendar, result)
         refreshed += 1
-        imported_events += len(result.events)
 
     if refreshed:
         messages.success(

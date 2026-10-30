@@ -5,6 +5,7 @@ from .models import (
     CalendarEvent,
     CalendarEventRule,
     CalendarVisibilityRule,
+    EventDeletion,
     GeoapifyAPILog,
     GeocodedLocation,
     RouteEstimate,
@@ -57,6 +58,14 @@ class CalendarAdmin(admin.ModelAdmin):
     )
     readonly_fields = ("last_synced_at", "created_at", "updated_at")
     inlines = (CalendarEventInline,)
+
+
+@admin.register(EventDeletion)
+class EventDeletionAdmin(admin.ModelAdmin):
+    list_display = ("external_uid", "recurrence_id", "calendar", "deleted_at")
+    list_filter = ("calendar",)
+    search_fields = ("external_uid", "recurrence_id", "calendar__name")
+    readonly_fields = ("deleted_at",)
 
 
 @admin.register(CalendarEvent)
